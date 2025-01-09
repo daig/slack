@@ -102,20 +102,16 @@ resource "aws_instance" "app" {
   instance_type = "t2.micro"
   subnet_id     = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
-  key_name      = aws_key_pair.deployer.key_name  # Reference the key pair we just created
+  key_name      = aws_key_pair.deployer.key_name
 
   root_block_device {
     volume_size = 20
     volume_type = "gp2"
   }
 
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y postgresql postgresql-contrib
-              systemctl start postgresql
-              systemctl enable postgresql
-              EOF
+  user_data = templatefile("${path.module}/user_data.tftpl", {
+    env_file_contents = file("${path.module}/../.env")
+  })
 
   tags = {
     Name = "slack-app-server"
