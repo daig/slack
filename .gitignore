@@ -27,4 +27,10 @@ yarn-error.log*
 .env.production.local
 
 # Electron specific
-out/ 
+out/
+
+# Terraform
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/ 
