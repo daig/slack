@@ -60,3 +60,19 @@ $$ LANGUAGE plpgsql STRICT SECURITY DEFINER;
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION create_user_with_login(VARCHAR, VARCHAR, TEXT) IS 
 'Creates a new user account with the given display name, email, and password.';
+
+
+-- Function to verify user login credentials
+CREATE OR REPLACE FUNCTION verify_user_login(user_email VARCHAR, user_password TEXT) 
+RETURNS UUID AS $$
+DECLARE
+    found_user_id UUID;
+BEGIN
+    SELECT ul.user_id INTO found_user_id
+    FROM user_logins ul
+    WHERE ul.email = user_email 
+    AND ul.password_hash = crypt(user_password, ul.password_hash);
+    
+    RETURN found_user_id;
+END;
+$$ LANGUAGE plpgsql STABLE;

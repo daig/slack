@@ -18,7 +18,9 @@ ENTRYPOINT postgraphile \
     --dynamic-json \
     --no-setof-functions-contain-nulls \
     --legacy-relations omit \
-    --show-error-stack
+    --show-error-stack \
+    --cors \
+    --cors-origin "electron://-"
     # --jwt-secret $JWT_SECRET \
     # --jwt-pg-type-identifier public.jwt_token \
 
