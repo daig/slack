@@ -20,8 +20,6 @@ ENTRYPOINT postgraphile \
     --legacy-relations omit \
     --show-error-stack \
     --cors \
-    --cors-origin "electron://-"
+    # --cors-origin "*" \
     # --jwt-secret $JWT_SECRET \
-    # --jwt-pg-type-identifier public.jwt_token \
-
-# CMD ["tail", "-f", "/dev/null"]
+    # --jwt-pg-type-identifier public.jwt_token
