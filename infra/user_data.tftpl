@@ -1,6 +1,7 @@
 #!/bin/bash
 apt-get update
-apt-get install -y postgresql postgresql-contrib git
+# Remove PostgreSQL installation but keep contrib for dependencies
+apt-get install -y postgresql-contrib git
 
 # Install Docker dependencies
 apt-get install -y \
@@ -27,6 +28,9 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 systemctl start docker
 systemctl enable docker
 
+# Add ubuntu user to docker group
+usermod -aG docker ubuntu
+
 # Clone the repository
 git clone https://github.com/daig/slack /home/ubuntu/slack
 chown -R ubuntu:ubuntu /home/ubuntu/slack
@@ -39,6 +43,6 @@ ENVFILE
 chown ubuntu:ubuntu /home/ubuntu/slack/.env
 chmod 600 /home/ubuntu/slack/.env
 
-# Start PostgreSQL
-systemctl start postgresql
-systemctl enable postgresql 
+# Uncomment the Docker Compose commands
+# cd /home/ubuntu/slack
+# docker compose up -d 
