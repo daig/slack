@@ -1,4 +1,4 @@
-# [BrainLift Name]
+# Chat app builder
 
 ## Purpose
 - Build a chat application based on slack
