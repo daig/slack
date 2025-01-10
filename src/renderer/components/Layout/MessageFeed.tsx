@@ -25,6 +25,8 @@ const GET_MESSAGES = gql`
 `;
 
 const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelId, userId }) => {
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
   if (!channelId) {
     return <div className="flex-1 min-h-0 bg-gray-50"></div>;
   }
@@ -34,6 +36,14 @@ const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelI
     pollInterval: 100,
     fetchPolicy: 'network-only',
   });
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  React.useEffect(() => {
+    scrollToBottom();
+  }, [data?.channelById?.messageChannelsByChannelId?.nodes]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -66,48 +76,51 @@ const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelI
       
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 scroll-smooth">
         {data?.channelById?.messageChannelsByChannelId?.nodes?.length > 0 ? (
-          data.channelById.messageChannelsByChannelId.nodes.map((messageChannel: any) => (
-            <div key={messageChannel.postedAt} className="group animate-fadeIn">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  {messageChannel.messageByMessageId?.userByUserId?.avatarUrl ? (
-                    <img
-                      src={messageChannel.messageByMessageId.userByUserId.avatarUrl}
-                      alt={`${messageChannel.messageByMessageId.userByUserId.displayName}'s avatar`}
-                      className="w-8 h-8 rounded-full object-cover ring-2 ring-white"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.removeAttribute('style');
-                      }}
-                    />
-                  ) : null}
-                  <div 
-                    className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium"
-                    style={{ display: messageChannel.messageByMessageId?.userByUserId?.avatarUrl ? 'none' : 'flex' }}
-                  >
-                    {messageChannel.messageByMessageId?.userByUserId?.displayName?.[0]?.toUpperCase()}
+          <>
+            {data.channelById.messageChannelsByChannelId.nodes.map((messageChannel: any) => (
+              <div key={messageChannel.postedAt} className="group animate-fadeIn">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    {messageChannel.messageByMessageId?.userByUserId?.avatarUrl ? (
+                      <img
+                        src={messageChannel.messageByMessageId.userByUserId.avatarUrl}
+                        alt={`${messageChannel.messageByMessageId.userByUserId.displayName}'s avatar`}
+                        className="w-8 h-8 rounded-full object-cover ring-2 ring-white"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.removeAttribute('style');
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium"
+                      style={{ display: messageChannel.messageByMessageId?.userByUserId?.avatarUrl ? 'none' : 'flex' }}
+                    >
+                      {messageChannel.messageByMessageId?.userByUserId?.displayName?.[0]?.toUpperCase()}
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium text-gray-900">
-                      {messageChannel.messageByMessageId?.userByUserId?.displayName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(messageChannel.postedAt).toLocaleString()}
-                    </span>
-                    {messageChannel.isEdited && (
-                      <span className="text-xs text-gray-400 italic">(edited)</span>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-gray-900">
+                        {messageChannel.messageByMessageId?.userByUserId?.displayName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(messageChannel.postedAt).toLocaleString()}
+                      </span>
+                      {messageChannel.isEdited && (
+                        <span className="text-xs text-gray-400 italic">(edited)</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-gray-700 whitespace-pre-wrap break-words">
+                      {messageChannel.messageByMessageId?.content}
+                    </p>
                   </div>
-                  <p className="mt-1 text-gray-700 whitespace-pre-wrap break-words">
-                    {messageChannel.messageByMessageId?.content}
-                  </p>
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+            <div ref={messagesEndRef} />
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-gray-500">
             <svg className="w-12 h-12 mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
