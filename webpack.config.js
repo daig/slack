@@ -29,10 +29,12 @@ module.exports = {
     output: {
         filename: 'renderer.js',
         path: path.resolve(__dirname, 'dist/renderer'),
+        publicPath: './'
     },
     plugins: [
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, 'src/renderer/index.html'),
+            filename: 'index.html'
         }),
     ],
 }; 

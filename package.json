@@ -12,7 +12,9 @@
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down -v",
     "db:logs": "docker compose logs -f",
-    "server:dev": "nodemon src/server/index.ts"
+    "server:dev": "nodemon src/server/index.ts",
+    "pack": "electron-builder --dir",
+    "dist": "npm run build && electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +28,7 @@
     "autoprefixer": "^10.4.20",
     "css-loader": "^7.1.2",
     "electron": "^25.0.0",
+    "electron-builder": "^25.1.8",
     "electron-devtools-installer": "^4.0.0",
     "html-webpack-plugin": "^5.5.0",
     "nodemon": "^2.0.22",
@@ -51,5 +54,27 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.1.1"
+  },
+  "build": {
+    "appId": "com.yourcompany.chatapp",
+    "productName": "Chat App",
+    "directories": {
+      "output": "release/"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Network"
+    }
   }
 }

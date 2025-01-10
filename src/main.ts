@@ -1,8 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
-import installExtension from 'electron-devtools-installer'
 
-function createWindow(): void {
+async function createWindow(): Promise<void> {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -12,20 +11,28 @@ function createWindow(): void {
     }
   })
 
-  win.webContents.openDevTools()
-  
-  win.loadFile(path.join(__dirname, './renderer/index.html'))
-}
-
-app.whenReady().then(async () => {
-  // Install Apollo DevTools
-  try {
-    await installExtension('apollo-developer-tools')
-    console.log('Apollo DevTools installed successfully');
-  } catch (e) {
-    console.log('Apollo DevTools failed to install:', e);
+  if (!app.isPackaged) {
+    try {
+      const installExtension = require('electron-devtools-installer');
+      await installExtension('apollo-developer-tools');
+      console.log('Apollo DevTools installed successfully');
+      win.webContents.openDevTools();
+    } catch (e) {
+      console.log('Apollo DevTools failed to install:', e);
+    }
   }
 
+  // Updated path resolution
+  if (app.isPackaged) {
+    // Production path
+    win.loadFile(path.join(app.getAppPath(), 'dist/renderer/index.html'))
+  } else {
+    // Development path
+    win.loadFile(path.join(__dirname, './renderer/index.html'))
+  }
+}
+
+app.whenReady().then(() => {
   createWindow()
 
   app.on('activate', () => {
