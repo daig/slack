@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
-import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftOnRectangleIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const GET_USER_CHANNELS = gql`
   query GetUserChannels($userId: UUID!) {
@@ -45,6 +45,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
         <div className="sidebar flex h-screen w-64 flex-col bg-gray-800">
             <div className="p-4">
                 <h1 className="text-xl font-bold text-white">Chat App</h1>
+                <button
+                    className="mt-4 w-full flex items-center justify-center gap-2 rounded-md bg-gray-700 py-2 px-4 text-gray-200 hover:bg-gray-600 hover:text-white transition-colors"
+                >
+                    <PlusIcon className="w-5 h-5" />
+                    <span>Join Channel</span>
+                </button>
             </div>
             
             <div className="flex-1 overflow-y-auto">
