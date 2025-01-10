@@ -15,7 +15,8 @@
     "server:dev": "nodemon src/server/index.ts",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --mac",
-    "dist:signed": "electron-builder --mac -c.mac.identity='David Girardo (8DWR7MSCR6)' --publish onTag"
+    "dist:signed": "npm run clean && npm run build && electron-builder --mac -c.mac.identity='David Girardo (8DWR7MSCR6)' --publish onTag",
+    "clean": "rm -rf dist/"
   },
   "keywords": [],
   "author": "",
