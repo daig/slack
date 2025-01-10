@@ -1,5 +1,6 @@
 import React, { useState, KeyboardEvent } from 'react';
 import { gql, useMutation } from '@apollo/client';
+import { useParams } from 'react-router-dom';
 
 const CREATE_MESSAGE = gql`
   mutation CreateMessageWithChannel($content: String!, $userId: UUID!, $channelId: UUID!) {
@@ -84,30 +85,27 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
         }
     };
 
+    const composerStyles = {
+        opacity: channelId ? 1 : 0.5,
+        pointerEvents: channelId ? 'auto' : 'none' as React.CSSProperties['pointerEvents'],
+    };
+
     return (
-        <div className="border-t border-gray-200 bg-white px-6 py-4">
-            {error && (
-                <div className="mb-4 p-3 bg-red-50 rounded-lg">
-                    <p className="text-sm text-red-600">
-                        Failed to send message: {error.message}
-                    </p>
-                </div>
-            )}
-            <div className="flex items-end space-x-3">
-                <div className="flex-1 min-w-0">
-                    <textarea
-                        rows={1}
-                        value={messageContent}
-                        onChange={(e) => setMessageContent(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Type a message..."
-                        className="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 resize-none"
-                        style={{ minHeight: '2.5rem', maxHeight: '10rem' }}
-                    />
-                </div>
+        <div className="message-composer" style={composerStyles}>
+            <form onSubmit={handleSend}>
+                <textarea
+                    rows={1}
+                    value={messageContent}
+                    onChange={(e) => setMessageContent(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder={channelId ? "Type a message..." : "Select a channel to start messaging"}
+                    disabled={!channelId}
+                    className="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 resize-none"
+                    style={{ minHeight: '2.5rem', maxHeight: '10rem' }}
+                />
                 <button
-                    onClick={handleSend}
-                    disabled={loading || !messageContent.trim()}
+                    type="submit"
+                    disabled={!channelId}
                     className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
                         loading || !messageContent.trim()
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -125,7 +123,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                         </svg>
                     )}
                 </button>
-            </div>
+            </form>
         </div>
     );
 }; 
