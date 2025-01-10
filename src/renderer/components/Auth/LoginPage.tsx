@@ -49,10 +49,7 @@ const LoginPage: React.FC = () => {
 
       // Save userId to global context
       setUserId(userId);
-      setError(`Login successful! User ID: ${userId}`);
-      setTimeout(() => {
-        navigate('/chat');
-      }, 1000);
+      navigate('/chat');
       
     } catch (err) {
       setError('Invalid email or password');
