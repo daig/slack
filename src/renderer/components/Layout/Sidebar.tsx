@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
+import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
 
 const GET_USER_CHANNELS = gql`
   query GetUserChannels($userId: UUID!) {
@@ -35,6 +36,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
 
     const channels = data?.userById?.channelMembersByUserId?.nodes || [];
 
+    const handleLogout = () => {
+        localStorage.removeItem('userId');
+        navigate('/login');
+    };
+
     return (
         <div className="sidebar flex h-screen w-64 flex-col bg-gray-800">
             <div className="p-4">
@@ -61,10 +67,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
 
             <div className="p-4 border-t border-gray-700">
                 <button
-                    onClick={() => navigate('/signup')}
-                    className="w-full rounded-md bg-indigo-600 py-2 px-4 text-white hover:bg-indigo-700 transition-colors"
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 rounded-md bg-gray-700 py-2 px-4 text-gray-200 hover:bg-gray-600 hover:text-white transition-colors"
                 >
-                    Sign Up
+                    <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+                    <span>Logout</span>
                 </button>
             </div>
         </div>
