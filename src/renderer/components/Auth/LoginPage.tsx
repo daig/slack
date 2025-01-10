@@ -1,14 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { gql, useQuery } from '@apollo/client';
+import { useUser } from '../../context/UserContext';
+
+const LOGIN_QUERY = gql`
+  query VerifyUserLogin($email: String!, $password: String!) {
+    verifyUserLogin(userEmail: $email, userPassword: $password)
+  }
+`;
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setUserId } = useUser();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const { loading: queryLoading, error: queryError, data, refetch } = useQuery(LOGIN_QUERY, {
+    skip: true,
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -22,12 +35,31 @@ const LoginPage: React.FC = () => {
     setError('');
     setLoading(true);
     
-    // TODO: Implement login mutation
-    console.log('Login attempted with:', formData);
-    
-    setLoading(false);
-    // Redirect to chat interface after successful login
-    navigate('/chat');
+    try {
+      const { data } = await refetch({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      const userId = data?.verifyUserLogin;
+      
+      if (!userId) {
+        throw new Error('Invalid credentials');
+      }
+
+      // Save userId to global context
+      setUserId(userId);
+      setError(`Login successful! User ID: ${userId}`);
+      setTimeout(() => {
+        navigate('/chat');
+      }, 1000);
+      
+    } catch (err) {
+      setError('Invalid email or password');
+      console.error('Login error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

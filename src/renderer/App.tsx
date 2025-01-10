@@ -7,10 +7,15 @@ import { client } from './apollo/client';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SignupPage from './components/Auth/SignupPage';
 import LoginPage from './components/Auth/LoginPage';
+import { UserProvider, useUser } from './context/UserContext';
 
 const MainLayout: React.FC = () => {
-    const [selectedChannelId, setSelectedChannelId] = useState<string>('44444444-4444-4444-4444-444444444444');
-    const userId = '11111111-1111-1111-1111-111111111111';
+    const [selectedChannelId, setSelectedChannelId] = useState<string>('');
+    const { userId } = useUser();
+
+    if (!userId) {
+        return <Navigate to="/" replace />;
+    }
 
     return (
         <div className="flex h-screen w-full overflow-hidden">
@@ -29,14 +34,16 @@ const MainLayout: React.FC = () => {
 export const App: React.FC = () => {
     return (
         <ApolloProvider client={client}>
-            <Router>
-                <Routes>
-                    <Route path="/" element={<LoginPage />} />
-                    <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/chat" element={<MainLayout />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            </Router>
+            <UserProvider>
+                <Router>
+                    <Routes>
+                        <Route path="/" element={<LoginPage />} />
+                        <Route path="/signup" element={<SignupPage />} />
+                        <Route path="/chat" element={<MainLayout />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </Router>
+            </UserProvider>
         </ApolloProvider>
     );
 };

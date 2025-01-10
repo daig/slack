@@ -25,6 +25,10 @@ const GET_MESSAGES = gql`
 `;
 
 const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelId, userId }) => {
+  if (!channelId) {
+    return <div className="flex-1 min-h-0 bg-gray-50"></div>;
+  }
+
   const { loading, error, data } = useQuery(GET_MESSAGES, {
     variables: { channelId },
     pollInterval: 100,
@@ -123,6 +127,10 @@ interface MessageFeedProps {
 }
 
 export const MessageFeed: React.FC<MessageFeedProps> = ({ channelId, userId }) => {
+  if (!channelId) {
+    return <div className="flex-1 min-h-0 bg-gray-50"></div>;
+  }
+
   return (
     <div className="flex-1 min-h-0 bg-gray-50">
       <MessageList channelId={channelId} userId={userId} />

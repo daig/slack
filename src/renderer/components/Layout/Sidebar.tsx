@@ -1,10 +1,11 @@
 import React from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../../context/UserContext';
 
 const GET_USER_CHANNELS = gql`
-  query GetUserChannels {
-    userByDisplayName(displayName: "alice") {
+  query GetUserChannels($userId: UUID!) {
+    userById(id: $userId) {
       channelMembersByUserId {
         nodes {
           channelByChannelId {
@@ -23,13 +24,16 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChannelId }) => {
-    const { loading, error, data } = useQuery(GET_USER_CHANNELS);
+    const { userId } = useUser();
+    const { loading, error, data } = useQuery(GET_USER_CHANNELS, {
+        variables: { userId },
+    });
     const navigate = useNavigate();
 
     if (loading) return <div className="sidebar">Loading...</div>;
     if (error) return <div className="sidebar">Error: {error.message}</div>;
 
-    const channels = data?.userByDisplayName?.channelMembersByUserId?.nodes || [];
+    const channels = data?.userById?.channelMembersByUserId?.nodes || [];
 
     return (
         <div className="sidebar flex h-screen w-64 flex-col bg-gray-800">
