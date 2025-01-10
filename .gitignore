@@ -33,4 +33,7 @@ out/
 *.tfvars
 *.tfstate
 *.tfstate.*
-.terraform/ 
+.terraform/
+
+# Electron build output
+release/

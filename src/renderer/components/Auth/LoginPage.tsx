@@ -26,6 +26,8 @@ const LoginPage: React.FC = () => {
     console.log('Login attempted with:', formData);
     
     setLoading(false);
+    // Redirect to chat interface after successful login
+    navigate('/chat');
   };
 
   return (

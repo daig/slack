@@ -4,7 +4,7 @@ import { MessageFeed } from './components/Layout/MessageFeed';
 import { MessageComposer } from './components/Layout/MessageComposer';
 import { ApolloProvider } from '@apollo/client';
 import { client } from './apollo/client';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SignupPage from './components/Auth/SignupPage';
 import LoginPage from './components/Auth/LoginPage';
 
@@ -31,9 +31,10 @@ export const App: React.FC = () => {
         <ApolloProvider client={client}>
             <Router>
                 <Routes>
+                    <Route path="/" element={<LoginPage />} />
                     <Route path="/signup" element={<SignupPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/" element={<MainLayout />} />
+                    <Route path="/chat" element={<MainLayout />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Router>
         </ApolloProvider>
