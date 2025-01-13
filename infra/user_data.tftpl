@@ -1,11 +1,14 @@
 #!/bin/bash
 apt-get update
 
-# Install Docker dependencies
+# Install Docker dependencies and nginx
 apt-get install -y \
     ca-certificates \
     curl \
-    gnupg
+    gnupg \
+    nginx \
+    nodejs \
+    npm
 
 # Add Docker's official GPG key
 install -m 0755 -d /etc/apt/keyrings
@@ -38,6 +41,36 @@ ENVFILE
 chown ubuntu:ubuntu /home/ubuntu/slack/.env
 chmod 600 /home/ubuntu/slack/.env
 
-# Uncomment the Docker Compose commands
+# Set up landing page
+cd /home/ubuntu/slack/landing-page
+npm install
+npm run build
+npm run copy-assets
+
+# Configure nginx
+cat > /etc/nginx/sites-available/default << 'NGINX'
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+NGINX
+
+# Restart nginx
+systemctl restart nginx
+
+# Start landing page server
+cd /home/ubuntu/slack/landing-page
+npm start &
+
+# Start Docker services
 cd /home/ubuntu/slack
 docker compose up -d 

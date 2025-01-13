@@ -1,6 +1,6 @@
 # Provider configuration
 provider "aws" {
-  region = "us-west-2"  # Change as needed
+  region = "eu-north-1"  # Changed to Stockholm region
 }
 
 # VPC and Networking
@@ -24,9 +24,9 @@ resource "aws_internet_gateway" "main" {
 
 # Public Subnet
 resource "aws_subnet" "public" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-west-2a"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "eu-north-1a"  # Changed to match new region
   map_public_ip_on_launch = true
 
   tags = {
@@ -105,8 +105,8 @@ resource "aws_key_pair" "deployer" {
 
 # EC2 Instance
 resource "aws_instance" "app" {
-  ami           = "ami-0735c191cf914754d"  # Ubuntu 22.04 LTS in us-west-2
-  instance_type = "t2.micro"
+  ami           = "ami-0989fb15ce71ba39e"  # Changed to Ubuntu 22.04 LTS AMI for eu-north-1
+  instance_type = "t3.micro"
   subnet_id     = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   key_name      = aws_key_pair.deployer.key_name

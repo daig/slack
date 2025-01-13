@@ -1,5 +1,9 @@
 import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
+import * as dotenv from 'dotenv'
+
+// Load environment variables before anything else
+dotenv.config()
 
 async function createWindow(): Promise<void> {
   const win = new BrowserWindow({

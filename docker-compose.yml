@@ -42,6 +42,15 @@ services:
       postgres:
         condition: service_healthy
 
+  landing-page:
+    build:
+      context: ./landing-page
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      - slackapp-network
+    restart: always
 
 networks:
   slackapp-network:
