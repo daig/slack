@@ -10,7 +10,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name = "slack-app-vpc"
+    Name = "dai-slack-app-vpc"
   }
 }
 
@@ -18,7 +18,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "slack-app-igw"
+    Name = "dai-slack-app-igw"
   }
 }
 
@@ -30,7 +30,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "slack-app-public"
+    Name = "dai-slack-app-public"
   }
 }
 
@@ -44,7 +44,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "slack-app-public-rt"
+    Name = "dai-slack-app-public-rt"
   }
 }
 
@@ -88,7 +88,7 @@ resource "aws_security_group" "ec2" {
   }
 
   tags = {
-    Name = "slack-app-ec2-sg"
+    Name = "dai-slack-app-ec2-sg"
   }
 }
 
@@ -99,7 +99,7 @@ data "http" "myip" {
 
 # Create AWS key pair from local public key
 resource "aws_key_pair" "deployer" {
-  key_name   = "slack-app-deployer-key"
+  key_name   = "dai-slack-app-deployer-key"
   public_key = file("~/.ssh/id_rsa.pub")  # Path to your public key
 }
 
@@ -121,7 +121,7 @@ resource "aws_instance" "app" {
   })
 
   tags = {
-    Name = "slack-app-server"
+    Name = "dai-slack-app-server"
   }
 }
 
