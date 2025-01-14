@@ -1,6 +1,6 @@
 {
   "name": "chat-app",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A basic Electron Hello World app",
   "main": "dist/main.js",
   "scripts": {
