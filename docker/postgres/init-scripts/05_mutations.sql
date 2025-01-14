@@ -92,3 +92,75 @@ COMMENT ON FUNCTION public.py_hello(TEXT) IS
 
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION public.py_hello(TEXT) TO PUBLIC;
+
+-- Create function for setting up RAG with Pinecone
+CREATE OR REPLACE FUNCTION setup_rag_for_chats()
+RETURNS void AS $$
+import os
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import Pinecone
+import pinecone
+
+# Initialize Pinecone
+pc = pinecone.Pinecone(
+    api_key=os.getenv("PINECONE_API_KEY")
+)
+
+index_name = "chat-messages"
+
+# Create index if it doesn't exist
+try:
+    pc.create_index(
+        name=index_name,
+        dimension=1536,
+        metric="cosine",
+        spec=pinecone.ServerlessSpec(
+            cloud="aws",
+            region="us-east-1"
+        )
+    )
+except Exception as e:
+    plpy.notice(f"Index creation skipped: {str(e)}")
+
+# Query messages and channels
+query = """
+    SELECT 
+        mc.posted_at as timestamp,
+        c.name as channel,
+        u.display_name as username,
+        m.content as message
+    FROM messages m
+    JOIN message_channels mc ON m.id = mc.message_id
+    JOIN channels c ON mc.channel_id = c.id
+    JOIN users u ON m.user_id = u.id
+"""
+
+# Execute query
+result = plpy.execute(query)
+
+# Create a document for each message
+documents = []
+for row in result:
+    doc = f"Time: {row['timestamp']}\nChannel: {row['channel']}\nUser: {row['username']}\nMessage: {row['message']}"
+    documents.append(doc)
+
+if documents:
+    # Create vector store
+    embeddings = OpenAIEmbeddings()
+    vectorstore = Pinecone.from_texts(
+        texts=documents,
+        embedding=embeddings,
+        index_name=index_name
+    )
+    plpy.notice(f"Successfully indexed {len(documents)} messages")
+else:
+    plpy.notice("No messages found to index")
+
+$$ LANGUAGE plpython3u;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION setup_rag_for_chats() IS 
+'Sets up a RAG (Retrieval Augmented Generation) system by indexing all chat messages in Pinecone.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION setup_rag_for_chats() TO PUBLIC;
