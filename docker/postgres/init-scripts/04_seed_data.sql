@@ -1,37 +1,59 @@
-    -- Insert some test users
-    INSERT INTO users (id, display_name, avatar_url) VALUES
-        ('11111111-1111-1111-1111-111111111111', 'alice', 'https://example.com/alice.jpg'),
-        ('22222222-2222-2222-2222-222222222222', 'bob', 'https://example.com/bob.jpg'),
-        ('33333333-3333-3333-3333-333333333333', 'carol', 'https://example.com/carol.jpg');
+-- Create temporary table for chat data
+CREATE TEMPORARY TABLE chats (
+    Timestamp TEXT,
+    Channel TEXT,
+    Username TEXT,
+    Message TEXT
+);
+-- Copy data from CSV file
+COPY chats FROM '/docker-entrypoint-initdb.d/chats.csv' WITH (FORMAT csv, HEADER true);
 
-    -- Insert user logins
-    INSERT INTO user_logins (user_id, email, password_hash) VALUES
-        ('11111111-1111-1111-1111-111111111111', 'alice@example.com', crypt('password123', gen_salt('bf'))),
-        ('22222222-2222-2222-2222-222222222222', 'bob@example.com', crypt('qwerty123', gen_salt('bf'))),
-        ('33333333-3333-3333-3333-333333333333', 'carol@example.com', crypt('letmein123', gen_salt('bf')));
+-- First, create temporary users if they don't exist
+INSERT INTO users (display_name)
+SELECT DISTINCT Username 
+FROM chats
+ON CONFLICT (display_name) DO NOTHING;
 
-    -- Insert some channels
-    INSERT INTO channels (id, name, description) VALUES
-        ('44444444-4444-4444-4444-444444444444', 'general', 'General discussion channel'),
-        ('55555555-5555-5555-5555-555555555555', 'random', 'Random conversations'),
-        ('66666666-6666-6666-6666-666666666666', 'tech', 'Technical discussions');
+-- Create default logins for each user with email pattern and default password
+INSERT INTO user_logins (user_id, email, password_hash)
+SELECT 
+    id,
+    display_name || '@pm.me',
+    crypt('pass', gen_salt('bf', 10)) -- Generate bcrypt hash of 'pass' with work factor 10
+FROM users
+ON CONFLICT (email) DO NOTHING;
 
-    -- Insert some messages
-    INSERT INTO messages (id, content, user_id, updated_at) VALUES
-        ('77777777-7777-7777-7777-777777777777', 'Hello everyone!', '11111111-1111-1111-1111-111111111111', '2024-01-01 10:00:00+00'),
-        ('88888888-8888-8888-8888-888888888888', 'Hi Alice!', '22222222-2222-2222-2222-222222222222', '2024-01-01 10:01:00+00'),
-        ('99999999-9999-9999-9999-999999999999', 'Welcome to the channel!', '33333333-3333-3333-3333-333333333333', '2024-01-01 10:02:00+00');
 
-    -- Link messages to channels
-    INSERT INTO message_channels (message_id, channel_id) VALUES
-        ('77777777-7777-7777-7777-777777777777', '44444444-4444-4444-4444-444444444444'),
-        ('88888888-8888-8888-8888-888888888888', '44444444-4444-4444-4444-444444444444'),
-        ('99999999-9999-9999-9999-999999999999', '44444444-4444-4444-4444-444444444444');
+-- Create channels if they don't exist
+INSERT INTO channels (name)
+SELECT DISTINCT TRIM('#' FROM Channel)
+FROM chats
+ON CONFLICT (name) DO NOTHING;
 
-    -- Add users to channels
-    INSERT INTO channel_members (channel_id, user_id) VALUES
-        ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111'),
-        ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222'),
-        ('44444444-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333'),
-        ('55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111'),
-        ('66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222');
+
+insert into messages (content, user_id, updated_at)
+select Message, users.id, TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS PM')
+from chats
+join users on users.display_name = chats.Username;
+
+insert into message_channels (message_id, channel_id, posted_at)
+select messages.id, channels.id, TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS PM')
+from chats
+join users on users.display_name = chats.Username
+join channels on channels.name = TRIM('#' FROM chats.Channel)
+join messages on messages.content = chats.Message 
+    AND messages.user_id = users.id 
+    AND messages.updated_at = TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS PM');
+
+-- Clean up temporary table
+DROP TABLE chats;
+
+-- Create channel members
+INSERT INTO channel_members (channel_id, user_id)
+SELECT DISTINCT mc.channel_id, m.user_id
+FROM message_channels mc
+JOIN messages m ON m.id = mc.message_id
+ON CONFLICT (channel_id, user_id) DO NOTHING;
+
+
+

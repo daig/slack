@@ -46,7 +46,7 @@ BEGIN
 
     -- Create the user login record with hashed password
     INSERT INTO user_logins (user_id, email, password_hash)
-    VALUES (new_user.id, email, crypt(password, gen_salt('bf')));
+    VALUES (new_user.id, email, crypt(password, gen_salt('bf', 10)));
 
     -- Return the created user
     RETURN new_user;
