@@ -1,4 +1,3 @@
-import pandas as pd
 from langchain_community.vectorstores import Pinecone
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate

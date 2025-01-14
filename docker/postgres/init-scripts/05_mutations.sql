@@ -96,15 +96,21 @@ GRANT EXECUTE ON FUNCTION public.py_hello(TEXT) TO PUBLIC;
 -- Create function for setting up RAG with Pinecone
 CREATE OR REPLACE FUNCTION setup_rag_for_chats()
 RETURNS void AS $$
+# Allow importing external modules
+import sys
+sys.path.append('/usr/local/lib/python3.11/site-packages')
+
 import os
+from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Pinecone
+from langchain_pinecone import PineconeVectorStore
 import pinecone
 
+# Load environment variables
+load_dotenv()
+
 # Initialize Pinecone
-pc = pinecone.Pinecone(
-    api_key=os.getenv("PINECONE_API_KEY")
-)
+pc = pinecone.Pinecone()
 
 index_name = "chat-messages"
 
@@ -147,7 +153,7 @@ for row in result:
 if documents:
     # Create vector store
     embeddings = OpenAIEmbeddings()
-    vectorstore = Pinecone.from_texts(
+    vectorstore = PineconeVectorStore.from_texts(
         texts=documents,
         embedding=embeddings,
         index_name=index_name
@@ -156,7 +162,7 @@ if documents:
 else:
     plpy.notice("No messages found to index")
 
-$$ LANGUAGE plpython3u;
+$$ LANGUAGE plpython3u SECURITY DEFINER;
 
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION setup_rag_for_chats() IS 
@@ -164,3 +170,133 @@ COMMENT ON FUNCTION setup_rag_for_chats() IS
 
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION setup_rag_for_chats() TO PUBLIC;
+
+
+-- Create function for creating RAG chain
+CREATE OR REPLACE FUNCTION create_rag_chain()
+RETURNS void AS $$
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+# get vectorstore from pinecone
+vectorstore = Pinecone.from_existing_index(
+    index_name="chat-messages",
+    embedding=OpenAIEmbeddings()
+)
+
+retriever = vectorstore.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 3}
+)
+
+template = """Answer the question based only on the following context:
+
+{context}
+
+Question: {question}
+"""
+
+prompt = ChatPromptTemplate.from_template(template)
+
+model = ChatOpenAI(
+    model_name="gpt-3.5-turbo",
+    temperature=0
+)
+
+chain = (
+    {"context": retriever, "question": RunnablePassthrough()}
+    | prompt
+    | model
+    | StrOutputParser()
+)
+
+if 'chains' not in GD:
+    GD['chains'] = {}
+GD['chains']['chat_messages'] = chain
+plpy.notice("RAG chain created and saved to shared dictionary")
+
+$$ LANGUAGE plpython3u;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION create_rag_chain() IS 
+'Creates and stores a RAG chain for querying chat messages using the previously created vectorstore.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION create_rag_chain() TO PUBLIC;
+
+
+-- Create function for querying chat messages using RAG
+CREATE OR REPLACE FUNCTION ask_message(question TEXT)
+RETURNS TEXT
+STABLE AS $$
+# Allow importing external modules
+import sys
+sys.path.append('/usr/local/lib/python3.11/site-packages')
+
+import os
+from dotenv import load_dotenv
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_pinecone import PineconeVectorStore
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+# Load environment variables
+load_dotenv()
+
+try:
+    index_name = "chat-messages"
+    
+    # Create vector store connection
+    embeddings = OpenAIEmbeddings()
+    vectorstore = PineconeVectorStore.from_existing_index(
+        embedding=embeddings,
+        index_name=index_name
+    )
+    
+    # Set up retriever
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 3}
+    )
+    
+    # Create prompt template
+    template = """Answer the question based only on the following context:
+    
+    {context}
+    
+    Question: {question}
+    """
+    
+    prompt = ChatPromptTemplate.from_template(template)
+    
+    # Create model
+    model = ChatOpenAI(
+        model_name="gpt-3.5-turbo",
+        temperature=0
+    )
+    
+    # Create and execute chain
+    chain = (
+        {"context": retriever, "question": RunnablePassthrough()}
+        | prompt
+        | model
+        | StrOutputParser()
+    )
+    
+    return chain.invoke(question)
+
+except Exception as e:
+    plpy.error(f"Error querying messages: {str(e)}")
+    return None
+
+$$ LANGUAGE plpython3u SECURITY DEFINER;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION ask_message(TEXT) IS 
+'Queries chat messages using RAG (Retrieval Augmented Generation) to answer questions about chat history.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION ask_message(TEXT) TO PUBLIC;

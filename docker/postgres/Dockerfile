@@ -6,7 +6,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required Python packages
-RUN pip3 install langchain-openai langchain-community pinecone-client python-dotenv --break-system-packages
+RUN pip3 install langchain-openai langchain-community pinecone-client python-dotenv langchain-pinecone --break-system-packages
 
 # Custom PostgreSQL configuration can be added here
 COPY postgresql.conf /etc/postgresql/postgresql.conf
