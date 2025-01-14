@@ -76,3 +76,19 @@ BEGIN
     RETURN found_user_id;
 END;
 $$ LANGUAGE plpgsql STABLE;
+
+-- Add PL/Python extension
+CREATE EXTENSION IF NOT EXISTS plpython3u;
+
+-- Create a sample Python function that can be called from SQL
+CREATE OR REPLACE FUNCTION public.py_hello(name TEXT)
+RETURNS TEXT AS $$
+    return f"Hello, {name} from Python!"
+$$ LANGUAGE plpython3u STABLE;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION public.py_hello(TEXT) IS 
+'A sample Python function that returns a greeting message.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION public.py_hello(TEXT) TO PUBLIC;
