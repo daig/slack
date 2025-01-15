@@ -1,16 +1,9 @@
-FROM node:20-alpine
+FROM nginx:alpine
 
-WORKDIR /app
+# Copy pre-built dist/web directory to nginx's default serve directory
+COPY dist/web/ /usr/share/nginx/html/
 
-# Copy package files
-COPY package*.json ./
+# Expose port 80 (standard HTTP port)
+EXPOSE 80
 
-# Install only production dependencies
-RUN npm ci --only=production
-
-# Copy pre-built dist directory
-COPY dist/ ./dist/
-
-EXPOSE 3000
-
-CMD ["npm", "start"] 
+# nginx will start automatically, no need for explicit CMD 

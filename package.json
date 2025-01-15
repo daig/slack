@@ -3,7 +3,7 @@
   "version": "1.0.5",
   "description": "A chat application",
   "scripts": {
-    "build": "webpack --config webpack.config.js && tsc -p landing-page/tsconfig.json && cp -r landing-page/public landing-page/dist/",
+    "build": "webpack --config webpack.config.js",
     "serve": "npx http-server dist/web",
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down -v",
