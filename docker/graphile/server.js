@@ -36,7 +36,8 @@ pool.connect()
           enhanceGraphiql: true,
           enableCors: true,
           externalUrlBase: '',
-          origin: '*'
+          origin: '*',
+          host: '0.0.0.0'
         }
       )
     );
