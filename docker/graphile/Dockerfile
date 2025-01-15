@@ -2,7 +2,6 @@ FROM node:alpine
 LABEL description="Instant high-performance GraphQL API for your PostgreSQL database https://github.com/graphile/postgraphile"
 
 ENV NODE_ENV=development
-ENV NODE_OPTIONS="--no-buffer"
 
 WORKDIR /app
 
