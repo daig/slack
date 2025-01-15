@@ -3,13 +3,13 @@
   "version": "1.0.5",
   "description": "A chat application",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
+    "build": "webpack --config webpack.config.js && tsc -p landing-page/tsconfig.json && cp -r landing-page/public landing-page/dist/",
     "serve": "npx http-server dist/web",
     "db:start": "docker compose up -d",
     "db:stop": "docker compose down -v",
     "db:logs": "docker compose logs -f",
     "server:dev": "nodemon src/server/index.ts",
-    "clean": "rm -rf dist/"
+    "clean": "rm -rf dist/ landing-page/dist/"
   },
   "keywords": [],
   "author": "",

@@ -5,17 +5,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install only production dependencies
+RUN npm ci --only=production
 
-# Copy source code
-COPY . .
-
-# Build TypeScript
-RUN npm run build
-
-# Copy public assets to dist
-RUN npm run copy-assets
+# Copy pre-built dist directory
+COPY dist/ ./dist/
 
 EXPOSE 3000
 
