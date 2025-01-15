@@ -8,7 +8,7 @@ const env = dotenv.config().parsed || {};
 
 // Create a default environment with at least the required variables
 const defaultEnv = {
-    REACT_APP_GRAPHQL_ENDPOINT: 'http://localhost:5000/graphql',
+    REACT_APP_GRAPHQL_ENDPOINT: 'http://localhost:5001/graphql',
     ...env
 };
 

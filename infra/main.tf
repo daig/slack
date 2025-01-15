@@ -74,8 +74,8 @@ resource "aws_security_group" "ec2" {
   }
 
   ingress {
-    from_port   = 5000
-    to_port     = 5000
+    from_port   = 5001
+    to_port     = 5001
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # GraphQL endpoint access from anywhere
   }
