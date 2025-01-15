@@ -1,10 +1,21 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
+const dotenv = require('dotenv');
+
+// Load environment variables from .env file
+const env = dotenv.config().parsed || {};
+
+// Create a default environment with at least the required variables
+const defaultEnv = {
+    REACT_APP_GRAPHQL_ENDPOINT: 'http://localhost:5000/graphql',
+    ...env
+};
 
 module.exports = {
-    mode: 'development',
+    mode: 'production',
     entry: './src/renderer/index.tsx',
-    target: 'electron-renderer',
+    target: 'web',
     devtool: 'source-map',
     module: {
         rules: [
@@ -27,14 +38,18 @@ module.exports = {
         extensions: ['.tsx', '.ts', '.js'],
     },
     output: {
-        filename: 'renderer.js',
-        path: path.resolve(__dirname, 'dist/renderer'),
-        publicPath: './'
+        filename: 'bundle.[contenthash].js',
+        path: path.resolve(__dirname, 'dist/web'),
+        clean: true,
+        publicPath: '/'
     },
     plugins: [
         new HtmlWebpackPlugin({
             template: path.resolve(__dirname, 'src/renderer/index.html'),
             filename: 'index.html'
+        }),
+        new webpack.DefinePlugin({
+            'process.env': JSON.stringify(defaultEnv)
         })
     ],
-}; 
+};

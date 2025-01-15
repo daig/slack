@@ -3,7 +3,10 @@ import config from '../config';
 
 const httpLink = createHttpLink({
   uri: config.graphqlEndpoint,
-  credentials: 'include', // This enables sending cookies if needed
+  credentials: 'omit', // Changed from 'same-origin' to 'omit'
+  headers: {
+    'Content-Type': 'application/json',
+  }
 });
 
 export const client = new ApolloClient({

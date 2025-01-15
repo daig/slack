@@ -2,7 +2,7 @@ FROM postgres:16
 
 # Install PostgreSQL Python extension and pip
 RUN apt-get update \
-    && apt-get install -y postgresql-plpython3-16 python3-pip \
+    && apt-get install -y postgresql-plpython3-16 python3-pip postgresql-contrib-16 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required Python packages
