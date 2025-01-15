@@ -1,17 +1,18 @@
-const http = require("http");
+const express = require("express");
 const { postgraphile } = require("postgraphile");
 
-http
-  .createServer(
-    postgraphile(
-      process.env.DATABASE_URL || "postgres://user:pass@host:5432/dbname",
-      "public",
-      {
-        watchPg: true,
-        graphiql: true,
-        enhanceGraphiql: true,
-        enableCors: true,
-      }
-    )
+const app = express();
+
+app.use(
+  postgraphile(
+    process.env.DATABASE_URL || "postgres://user:pass@host:5432/dbname",
+    "public",
+    {
+      watchPg: true,
+      graphiql: true,
+      enhanceGraphiql: true,
+    }
   )
-  .listen(process.env.PORT || 5000);
+);
+
+app.listen(process.env.PORT || 3000);
