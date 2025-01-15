@@ -7,8 +7,18 @@ require('console').Console({ stdout: process.stdout, stderr: process.stderr });
 
 const app = express();
 
-// Add CORS middleware
-app.use(cors());
+// Add CORS middleware with explicit configuration
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+// Add basic health check endpoint
+app.get('/health', (req, res) => {
+  res.send('OK');
+});
 
 console.log("=== Starting server ===");
 console.log("Current timestamp:", new Date().toISOString());
@@ -35,9 +45,11 @@ pool.connect()
           graphiql: true,
           enhanceGraphiql: true,
           enableCors: true,
-          externalUrlBase: '',
-          origin: '*',
-          host: '0.0.0.0'
+          externalUrlBase: '/',
+          graphiqlRoute: '/graphiql',
+          graphqlRoute: '/graphql',
+          host: '0.0.0.0',
+          retryOnInitFail: true
         }
       )
     );
