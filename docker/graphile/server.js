@@ -1,10 +1,14 @@
 const express = require("express");
 const { postgraphile } = require("postgraphile");
+const cors = require('cors');
 
 // Force immediate logging
 require('console').Console({ stdout: process.stdout, stderr: process.stderr });
 
 const app = express();
+
+// Add CORS middleware
+app.use(cors());
 
 console.log("=== Starting server ===");
 console.log("Current timestamp:", new Date().toISOString());
