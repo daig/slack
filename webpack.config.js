@@ -3,12 +3,14 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 const dotenv = require('dotenv');
 
-// Load environment variables from .env file
-const env = dotenv.config().parsed || {};
+// Explicitly specify the path to your .env file
+const env = dotenv.config({
+    path: path.resolve(__dirname, '.env')
+}).parsed || {};
 
 // Create a default environment with at least the required variables
 const defaultEnv = {
-    REACT_APP_GRAPHQL_ENDPOINT: 'http://localhost:5001/graphql',
+    REACT_APP_GRAPHQL_ENDPOINT:  'http://16.16.64.114:5000/graphql', // 'http://localhost:5001/graphql',
     ...env
 };
 
@@ -49,7 +51,12 @@ module.exports = {
             filename: 'index.html'
         }),
         new webpack.DefinePlugin({
-            'process.env': JSON.stringify(defaultEnv)
+            'process.env': {
+                // Each environment variable needs to be explicitly stringified
+                REACT_APP_GRAPHQL_ENDPOINT: JSON.stringify(
+                    env.REACT_APP_GRAPHQL_ENDPOINT || 'http://localhost:5002/graphql'
+                )
+            }
         })
     ],
 };
