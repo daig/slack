@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useSubscription, gql } from '@apollo/client';
 
 const GET_MESSAGES = gql`
   query GetMessages($channelId: UUID!) {
@@ -24,6 +24,28 @@ const GET_MESSAGES = gql`
   }
 `;
 
+const MESSAGE_ADDED_SUBSCRIPTION = gql`
+  subscription OnMessageAdded($channelId: UUID!) {
+    messageAdded(channelId: $channelId) {
+      message {
+        id
+        content
+        userByUserId {
+          id
+          displayName
+          avatarUrl
+        }
+      }
+      channel {
+        id
+        name
+      }
+      postedAt
+      isEdited
+    }
+  }
+`;
+
 const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelId, userId }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   
@@ -31,11 +53,51 @@ const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelI
     return <div className="flex-1 min-h-0 bg-gray-50"></div>;
   }
 
-  const { loading, error, data } = useQuery(GET_MESSAGES, {
+  const { loading, error, data, subscribeToMore } = useQuery(GET_MESSAGES, {
     variables: { channelId },
-    pollInterval: 100,
     fetchPolicy: 'network-only',
   });
+
+  React.useEffect(() => {
+    const unsubscribe = subscribeToMore({
+      document: MESSAGE_ADDED_SUBSCRIPTION,
+      variables: { channelId },
+      updateQuery: (prev, { subscriptionData }) => {
+        if (!subscriptionData.data) return prev;
+        const newMessage = subscriptionData.data.messageAdded;
+
+        // Return previous state if we already have this message
+        const existingMessage = prev.channelById.messageChannelsByChannelId.nodes.find(
+          (node: any) => node.messageByMessageId.id === newMessage.message.id
+        );
+        if (existingMessage) return prev;
+
+        // Add new message to the list
+        return {
+          ...prev,
+          channelById: {
+            ...prev.channelById,
+            messageChannelsByChannelId: {
+              ...prev.channelById.messageChannelsByChannelId,
+              nodes: [
+                ...prev.channelById.messageChannelsByChannelId.nodes,
+                {
+                  isEdited: newMessage.isEdited,
+                  messageByMessageId: newMessage.message,
+                  postedAt: newMessage.postedAt,
+                  __typename: 'MessageChannels'
+                }
+              ]
+            }
+          }
+        };
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [channelId, subscribeToMore]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

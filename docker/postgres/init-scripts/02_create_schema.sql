@@ -1,4 +1,3 @@
-
 CREATE TABLE users ( -- Users table: Stores user account information
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Unique identifier for each user using UUID v4
     display_name VARCHAR(50) NOT NULL UNIQUE,
@@ -79,3 +78,48 @@ $$ LANGUAGE sql STABLE;
 -- Add comment to help with GraphQL documentation
 COMMENT ON FUNCTION message_channels_is_edited(message_channels) IS 
 'Indicates whether the message has been edited since it was posted in this channel.';
+
+-- Function to notify subscribers when a message is added to a channel
+CREATE OR REPLACE FUNCTION notify_message_added()
+RETURNS trigger AS $$
+DECLARE
+  message messages;
+  channel channels;
+BEGIN
+  -- Get the full message details
+  SELECT * INTO message FROM messages WHERE id = NEW.message_id;
+  -- Get the channel details
+  SELECT * INTO channel FROM channels WHERE id = NEW.channel_id;
+  
+  -- Notify subscribers with the message and channel info
+  PERFORM pg_notify(
+    'graphql:message_added:' || NEW.channel_id,
+    json_build_object(
+      'message', json_build_object(
+        'id', message.id,
+        'content', message.content,
+        'userId', message.user_id,
+        'updatedAt', message.updated_at
+      ),
+      'channel', json_build_object(
+        'id', channel.id,
+        'name', channel.name
+      ),
+      'postedAt', NEW.posted_at,
+      'isEdited', message_channels_is_edited(NEW)
+    )::text
+  );
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql VOLATILE;
+
+-- Create trigger to fire notification when message is added to a channel
+CREATE TRIGGER message_added_trigger
+  AFTER INSERT ON message_channels
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_message_added();
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION notify_message_added() IS 
+'Notifies subscribers when a new message is added to a channel.';
