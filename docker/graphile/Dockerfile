@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies
 RUN npm init -y && \
-    npm install postgraphile postgraphile-plugin-connection-filter express cors
+    npm install postgraphile postgraphile-plugin-connection-filter @graphile/pg-pubsub express cors
 
 # Copy server.js instead of creating it inline
 COPY server.js .
