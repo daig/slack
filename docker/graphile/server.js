@@ -1,10 +1,23 @@
 const express = require("express");
 const { postgraphile } = require("postgraphile");
+const cors = require('cors');
 
 const app = express();
 
 console.log("Starting server...");
 console.log("Database URL:", process.env.DATABASE_URL || "postgres://user:pass@host:5432/dbname");
+
+// Configure CORS
+const corsOptions = {
+  origin: process.env.REACT_APP_GRAPHQL_ENDPOINT ? `http://${new URL(process.env.REACT_APP_GRAPHQL_ENDPOINT).hostname}` : 'http://localhost',
+  credentials: true
+};
+
+// Enable CORS for all routes
+app.use(cors(corsOptions));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors(corsOptions));
 
 app.use(
   postgraphile(
