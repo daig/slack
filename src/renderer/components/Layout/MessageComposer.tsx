@@ -1,6 +1,7 @@
 import React, { useState, KeyboardEvent } from 'react';
 import { gql, useMutation, useLazyQuery } from '@apollo/client';
 import { useParams } from 'react-router-dom';
+import axios from 'axios';
 
 const CREATE_MESSAGE = gql`
   mutation CreateMessageWithChannel($content: String!, $userId: UUID!, $channelId: UUID!) {
@@ -60,6 +61,59 @@ const useCreateMessage = () => {
   };
 };
 
+const useTextToSpeech = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const speak = async (text: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axios.post(
+        'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM',
+        {
+          text,
+          model_id: "eleven_monolingual_v1",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5
+          }
+        },
+        {
+          headers: {
+            'Accept': 'audio/mpeg',
+            'xi-api-key': process.env.ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          responseType: 'blob'
+        }
+      );
+
+      const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      await audio.play();
+
+      // Clean up the URL after playing
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+      };
+    } catch (err) {
+      console.error('Error in text-to-speech:', err);
+      setError('Failed to convert text to speech');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    speak,
+    isLoading,
+    error
+  };
+};
+
 interface MessageComposerProps {
     channelId: string;
     userId: string;
@@ -67,6 +121,7 @@ interface MessageComposerProps {
 
 export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, userId }) => {
     const { sendMessage, loading, error } = useCreateMessage();
+    const { speak, isLoading: speechLoading, error: speechError } = useTextToSpeech();
     const [messageContent, setMessageContent] = useState('');
     const [showPopup, setShowPopup] = useState(false);
     const [popupContent, setPopupContent] = useState('');
@@ -172,6 +227,27 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                         ) : (
                             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        )}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => speak(messageContent)}
+                        disabled={!messageContent.trim() || speechLoading}
+                        className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 ${
+                            speechLoading || !messageContent.trim()
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 text-white hover:bg-green-500 active:bg-green-700'
+                        }`}
+                    >
+                        {speechLoading ? (
+                            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072M12 9.64a3 3 0 010 4.72m3.536-9.864a7 7 0 010 12.728M19.072 5.929a9 9 0 010 18.142" />
                             </svg>
                         )}
                     </button>

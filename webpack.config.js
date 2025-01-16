@@ -9,7 +9,8 @@ const env = dotenv.config({
 }).parsed || {};
 
 const defaultEnv = {
-    REACT_APP_GRAPHQL_ENDPOINT: 'http://51.20.43.250:5000/graphql',
+    REACT_APP_GRAPHQL_ENDPOINT: 'http://13.60.201.185:5000/graphql',
+    ELEVENLABS_API_KEY: env.ELEVENLABS_API_KEY,
     ...env
 };
 
@@ -51,7 +52,8 @@ module.exports = [
                 'process.env': {
                     REACT_APP_GRAPHQL_ENDPOINT: JSON.stringify(
                         env.REACT_APP_GRAPHQL_ENDPOINT || 'http://localhost:5001/graphql'
-                    )
+                    ),
+                    ELEVENLABS_API_KEY: JSON.stringify(env.ELEVENLABS_API_KEY)
                 }
             })
         ],
