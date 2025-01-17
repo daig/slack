@@ -20,7 +20,11 @@ CREATE TABLE channels ( -- Channels table: Stores chat channels/rooms
     name VARCHAR(50),
     description TEXT,
     is_private BOOLEAN DEFAULT FALSE,
-    CONSTRAINT channel_name_valid CHECK (name IS NULL OR name ~ '^[a-z0-9_\-]+$')
+    is_dm BOOLEAN DEFAULT FALSE,
+    CONSTRAINT channel_name_valid CHECK (
+        (is_dm IS TRUE AND name IS NULL) OR 
+        (is_dm IS FALSE AND name ~ '^[a-z0-9_\-]+$')
+    )
 );
 
 CREATE UNIQUE INDEX idx_channels_name ON channels (name) WHERE name IS NOT NULL;
@@ -38,8 +42,8 @@ BEGIN
         ORDER BY display_name
     ) u;
 
-    INSERT INTO channels (id, name, is_private) 
-    VALUES (channel_id, channel_name, TRUE)
+    INSERT INTO channels (id, description, is_private, is_dm) 
+    VALUES (channel_id, display_names, TRUE, TRUE)
     ON CONFLICT (id) DO NOTHING;
     
     INSERT INTO channel_members (channel_id, user_id) 
