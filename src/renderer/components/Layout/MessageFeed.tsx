@@ -24,7 +24,13 @@ const GET_MESSAGES = gql`
   }
 `;
 
-const renderMessageWithMentions = (content: string) => {
+interface MessageFeedProps {
+    channelId: string;
+    userId: string;
+    onChannelSelect: (channelId: string) => void;
+}
+
+const renderMessageWithMentions = (content: string, onChannelSelect: (channelId: string) => void) => {
   if (!content) return '';
   
   // This regex matches both @ and # mentions in the format @[name](id) or #[name](id)
@@ -42,6 +48,7 @@ const renderMessageWithMentions = (content: string) => {
 
     // Add the mention as a link
     const [fullMatch, display, id] = match;
+    const isChannel = fullMatch.startsWith('#');
     parts.push(
       <a
         key={match.index}
@@ -49,7 +56,9 @@ const renderMessageWithMentions = (content: string) => {
         className="text-blue-600 hover:text-blue-800 hover:underline"
         onClick={(e) => {
           e.preventDefault();
-          // TODO: Handle click on mention
+          if (isChannel) {
+            onChannelSelect(id);
+          }
         }}
       >
         {fullMatch.startsWith('@') ? '@' : '#'}{display}
@@ -67,7 +76,7 @@ const renderMessageWithMentions = (content: string) => {
   return <>{parts}</>;
 };
 
-const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelId, userId }) => {
+const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect: (channelId: string) => void }> = ({ channelId, userId, onChannelSelect }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   
   if (!channelId) {
@@ -156,7 +165,7 @@ const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelI
                       )}
                     </div>
                     <p className="mt-1 text-gray-700 whitespace-pre-wrap break-words">
-                      {renderMessageWithMentions(messageChannel.messageByMessageId?.content)}
+                      {renderMessageWithMentions(messageChannel.messageByMessageId?.content, onChannelSelect)}
                     </p>
                   </div>
                 </div>
@@ -177,19 +186,14 @@ const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelI
   );
 };
 
-interface MessageFeedProps {
-    channelId: string;
-    userId: string;
-}
-
-export const MessageFeed: React.FC<MessageFeedProps> = ({ channelId, userId }) => {
+export const MessageFeed: React.FC<MessageFeedProps> = ({ channelId, userId, onChannelSelect }) => {
   if (!channelId) {
     return <div className="flex-1 min-h-0 bg-gray-50"></div>;
   }
 
   return (
     <div className="flex-1 min-h-0 bg-gray-50">
-      <MessageList channelId={channelId} userId={userId} />
+      <MessageList channelId={channelId} userId={userId} onChannelSelect={onChannelSelect} />
     </div>
   );
 };

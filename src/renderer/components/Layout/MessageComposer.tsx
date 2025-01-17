@@ -1,5 +1,5 @@
 import React, { useState, KeyboardEvent, ChangeEvent } from 'react';
-import { gql, useMutation, useLazyQuery } from '@apollo/client';
+import { gql, useMutation, useLazyQuery, useQuery } from '@apollo/client';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { MentionsInput, Mention, SuggestionDataItem } from 'react-mentions';
@@ -33,6 +33,36 @@ const CREATE_MESSAGE = gql`
 const ASK_MESSAGE = gql`
   query AskMessage($question: String!) {
     askMessage(question: $question)
+  }
+`;
+
+const GET_CHANNEL_MEMBERS = gql`
+  query GetChannelMembers($channelId: UUID!) {
+    channelById(id: $channelId) {
+      channelMembersByChannelId {
+        nodes {
+          userByUserId {
+            id
+            displayName
+          }
+        }
+      }
+    }
+  }
+`;
+
+const GET_USER_CHANNELS = gql`
+  query GetUserChannels($userId: UUID!) {
+    userById(id: $userId) {
+      channelMembersByUserId {
+        nodes {
+          channelByChannelId {
+            id
+            name
+          }
+        }
+      }
+    }
   }
 `;
 
@@ -127,16 +157,35 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     const [showPopup, setShowPopup] = useState(false);
     const [popupContent, setPopupContent] = useState('');
 
-    const users: SuggestionDataItem[] = [
-        { id: 'jarred', display: 'jarred' },
-        { id: 'david', display: 'david' },
-        { id: 'bobbert', display: 'bobbert' }
-    ];
+    const { data: channelData } = useQuery(GET_CHANNEL_MEMBERS, {
+        variables: { channelId },
+        skip: !channelId
+    });
 
-    const channels: SuggestionDataItem[] = [
-        { id: 'general', display: 'general' },
-        { id: 'random', display: 'random' }
-    ];
+    const { data: userChannelsData } = useQuery(GET_USER_CHANNELS, {
+        variables: { userId },
+        skip: !userId
+    });
+
+    const users: SuggestionDataItem[] = React.useMemo(() => {
+        if (!channelData?.channelById?.channelMembersByChannelId?.nodes) return [];
+        return channelData.channelById.channelMembersByChannelId.nodes.map(
+            (node: any) => ({
+                id: node.userByUserId.id,
+                display: node.userByUserId.displayName
+            })
+        );
+    }, [channelData]);
+
+    const channels: SuggestionDataItem[] = React.useMemo(() => {
+        if (!userChannelsData?.userById?.channelMembersByUserId?.nodes) return [];
+        return userChannelsData.userById.channelMembersByUserId.nodes.map(
+            (node: any) => ({
+                id: node.channelByChannelId.id,
+                display: node.channelByChannelId.name
+            })
+        );
+    }, [userChannelsData]);
 
     const [askQuestion, { loading: askLoading }] = useLazyQuery(ASK_MESSAGE, {
         onCompleted: (data) => {

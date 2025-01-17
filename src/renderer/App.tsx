@@ -24,7 +24,11 @@ const MainLayout: React.FC = () => {
                 selectedChannelId={selectedChannelId} 
             />
             <main className="flex flex-col flex-1 h-full">
-                <MessageFeed channelId={selectedChannelId} userId={userId} />
+                <MessageFeed 
+                    channelId={selectedChannelId} 
+                    userId={userId} 
+                    onChannelSelect={setSelectedChannelId}
+                />
                 <MessageComposer channelId={selectedChannelId} userId={userId} />
             </main>
         </div>
