@@ -416,7 +416,7 @@ try:
     pc = pinecone.Pinecone()
     index_name = "documents"
 
-    # Create index if it doesn't exist
+    # Create index if it doesnt exist
     try:
         pc.create_index(
             name=index_name,
@@ -437,7 +437,7 @@ try:
         embedding=embeddings
     )
 
-    # Parse metadata if it's a string
+    # Parse metadata if its a string
     doc_metadata = {}
     if isinstance(metadata, str):
         doc_metadata = json.loads(metadata)
@@ -468,7 +468,7 @@ try:
     plpy.notice(f"Successfully indexed document: {file_key}")
 
 except Exception as e:
-    plpy.error(f"Error indexing document: {str(e)}\n metadata:{essential_metadata}")
+     plpy.error(f"Error indexing document: {str(e)}")
 
 $$ LANGUAGE plpython3u SECURITY DEFINER;
 
