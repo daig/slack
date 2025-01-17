@@ -106,7 +106,7 @@ const CREATE_MESSAGE_WITH_FILE = gql`
 
 const SEARCH_DOCUMENTS = gql`
   query SearchDocuments($query: String!, $maxResults: Int) {
-    searchDocuments(query: $query, maxResults: $maxResults) {
+    searchDocumentsList(query: $query, maxResults: $maxResults) {
       fileKey
       bucket
       score
@@ -233,7 +233,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
 
     const [searchDocuments, { loading: searchLoading }] = useLazyQuery(SEARCH_DOCUMENTS, {
         onCompleted: (data) => {
-            setSearchResults(data.searchDocuments);
+            setSearchResults(data.searchDocumentsList);
             setShowSearchResults(true);
         },
         onError: (error) => {
