@@ -456,6 +456,10 @@ try:
         # Note: 'text' field is intentionally omitted
     }
 
+    # Remove 'text' field if present
+    if 'text' in essential_metadata:
+        del essential_metadata['text']
+
     # Debugging: Ensure 'text' is not in metadata
     plpy.notice(f" XXXXXXXXXXX Essential metadata being sent to Pinecone: {essential_metadata}")
 
