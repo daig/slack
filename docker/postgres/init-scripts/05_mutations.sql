@@ -497,6 +497,7 @@ import os
 from dotenv import load_dotenv
 import pinecone
 from langchain_openai import OpenAIEmbeddings
+import json
 
 # Load environment variables
 load_dotenv()
@@ -515,19 +516,21 @@ try:
     # Search in Pinecone
     results = index.query(
         vector=query_embedding,
-        top_k=max_results if max_results is not None else 3,
+        top_k=max_results,
         include_metadata=True
     )
 
     # Format results for return
     return_results = []
     for match in results['matches']:
-        return_results.append((
-            match['metadata']['file_key'],
-            match['metadata']['bucket'],
-            float(match['score']),
-            match['metadata']
-        ))
+        # Convert metadata to a proper JSON string and then parse it back to ensure valid JSONB
+        metadata_json = json.dumps(match['metadata'])
+        return_results.append({
+            "file_key": match['metadata']['file_key'],
+            "bucket": match['metadata']['bucket'],
+            "score": float(match['score']),
+            "metadata": metadata_json
+        })
 
     return return_results
 
@@ -535,7 +538,7 @@ except Exception as e:
     plpy.error(f"Error searching documents: {str(e)}")
     return []
 
-$$ LANGUAGE plpython3u SECURITY DEFINER STABLE PARALLEL SAFE;
+$$ LANGUAGE plpython3u SECURITY DEFINER STABLE;
 
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION search_documents(TEXT, INTEGER) IS 
