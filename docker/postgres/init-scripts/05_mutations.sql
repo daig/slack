@@ -301,12 +301,19 @@ COMMENT ON FUNCTION ask_message(TEXT) IS
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION ask_message(TEXT) TO PUBLIC;
 
+-- Create custom type for S3 presigned URL response
+CREATE TYPE s3_presigned_url_response AS (
+    presigned_url TEXT,
+    file_key TEXT,
+    bucket TEXT
+);
+
 -- Create function for generating S3 presigned URLs
 CREATE OR REPLACE FUNCTION generate_s3_presigned_url(
     file_name TEXT,
     file_size INTEGER,
     content_type TEXT DEFAULT NULL
-) RETURNS JSON AS $$
+) RETURNS s3_presigned_url_response AS $$
 # Allow importing external modules
 import sys
 sys.path.append('/usr/local/lib/python3.11/site-packages')
@@ -320,7 +327,7 @@ try:
         file_size=file_size,
         content_type=content_type
     )
-    return result
+    return (result['presignedUrl'], result['fileKey'], result['bucket'])
 except Exception as e:
     plpy.error(f"Error generating presigned URL: {str(e)}")
     return None
@@ -329,7 +336,10 @@ $$ LANGUAGE plpython3u SECURITY DEFINER;
 
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION generate_s3_presigned_url(TEXT, INTEGER, TEXT) IS 
-'Generates a presigned URL for uploading files to S3, returns JSON with presignedUrl, fileKey, and bucket.';
+'Generates a presigned URL for uploading files to S3.';
+
+COMMENT ON TYPE s3_presigned_url_response IS 
+'Response type containing the presigned URL and file information for S3 uploads.';
 
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION generate_s3_presigned_url(TEXT, INTEGER, TEXT) TO PUBLIC;
