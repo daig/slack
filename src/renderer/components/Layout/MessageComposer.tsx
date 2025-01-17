@@ -585,14 +585,23 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                                 {searchResults.map((result, index) => (
                                     <div key={index} className="border rounded-lg p-4">
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">{result.metadata.fileName}</span>
+                                            <span className="font-medium">{result.metadata.fileName || 'Unnamed file'}</span>
                                             <span className="text-sm text-gray-500">
-                                                Score: {(1 - result.score).toFixed(2)}
+                                                Score: {(result.score * 100).toFixed(0)}%
                                             </span>
                                         </div>
-                                        <div className="text-sm text-gray-600">
-                                            <p>Uploaded by: {result.metadata.uploadedBy}</p>
-                                            <p>Uploaded at: {new Date(result.metadata.uploadedAt).toLocaleString()}</p>
+                                        <div className="text-sm text-gray-600 space-y-2">
+                                            <p>Uploaded by: {result.metadata.uploadedBy || 'Unknown'}</p>
+                                            <p>Uploaded at: {result.metadata.uploadedAt ? new Date(result.metadata.uploadedAt).toLocaleString() : 'Unknown'}</p>
+                                            <p>Size: {result.metadata.fileSize ? `${(result.metadata.fileSize / 1024).toFixed(2)} KB` : 'Unknown'}</p>
+                                            <a 
+                                                href={result.metadata.downloadUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                            >
+                                                Download File
+                                            </a>
                                         </div>
                                     </div>
                                 ))}

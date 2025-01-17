@@ -523,13 +523,24 @@ try:
     # Format results for return
     return_results = []
     for match in results['matches']:
-        # Convert metadata to a proper JSON string and then parse it back to ensure valid JSONB
-        metadata_json = json.dumps(match['metadata'])
+        metadata = match['metadata']
+        # Create a clean metadata object with all required fields
+        clean_metadata = {
+            'file_key': metadata['file_key'],
+            'bucket': metadata['bucket'],
+            'fileName': metadata.get('file_name', ''),
+            'contentType': metadata.get('content_type', ''),
+            'uploadedBy': metadata.get('uploaded_by', ''),
+            'uploadedAt': metadata.get('uploaded_at', ''),
+            'fileSize': metadata.get('file_size', 0),
+            'downloadUrl': f"https://{metadata['bucket']}.s3.amazonaws.com/{metadata['file_key']}"
+        }
+        
         return_results.append({
-            "file_key": match['metadata']['file_key'],
-            "bucket": match['metadata']['bucket'],
+            "file_key": metadata['file_key'],
+            "bucket": metadata['bucket'],
             "score": float(match['score']),
-            "metadata": metadata_json
+            "metadata": json.dumps(clean_metadata)
         })
 
     return return_results
