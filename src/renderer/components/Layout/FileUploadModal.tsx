@@ -15,6 +15,12 @@ const GENERATE_PRESIGNED_URL = gql`
   }
 `;
 
+const INDEX_DOCUMENT = gql`
+  mutation IndexDocument($input: IndexDocumentInput!) {
+    indexDocument(input: $input)
+  }
+`;
+
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +41,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   const [isUploading, setIsUploading] = useState(false);
 
   const [generatePresignedUrl] = useMutation(GENERATE_PRESIGNED_URL);
+  const [indexDocument] = useMutation(INDEX_DOCUMENT);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -70,13 +77,33 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         },
       });
 
+      // Read file content for indexing
+      const fileContent = await selectedFile.text();
+      
+      // Index the document
+      await indexDocument({
+        variables: {
+          input: {
+            fileKey,
+            bucket,
+            content: fileContent,
+            metadata: {
+              fileName: selectedFile.name,
+              contentType: selectedFile.type,
+              uploadedBy: userId,
+              uploadedAt: new Date().toISOString()
+            }
+          }
+        }
+      });
+
       onUploadComplete(selectedFile, {
         fileKey,
         bucket,
         contentType: selectedFile.type
       });
 
-      setUploadStatus('File uploaded successfully!');
+      setUploadStatus('File uploaded and indexed successfully!');
 
     } catch (error) {
       console.error('Error uploading file:', error);

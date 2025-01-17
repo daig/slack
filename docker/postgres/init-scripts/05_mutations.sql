@@ -389,3 +389,144 @@ $$ LANGUAGE plpgsql STRICT SECURITY DEFINER;
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION create_message_with_file(TEXT, UUID, UUID, TEXT, TEXT, TEXT) IS 
 'Creates a new message with an attached file and associates it with a channel.';
+
+-- Create function for indexing a document in Pinecone
+CREATE OR REPLACE FUNCTION index_document(
+    file_key TEXT,
+    bucket TEXT,
+    content TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb
+) RETURNS void AS $$
+# Allow importing external modules
+import sys
+sys.path.append('/usr/local/lib/python3.11/site-packages')
+
+import os
+from dotenv import load_dotenv
+from langchain_openai import OpenAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+import pinecone
+import json
+
+# Load environment variables
+load_dotenv()
+
+try:
+    # Initialize Pinecone
+    pc = pinecone.Pinecone()
+    index_name = "documents"
+
+    # Create index if it doesn't exist
+    try:
+        pc.create_index(
+            name=index_name,
+            dimension=1536,
+            metric="cosine",
+            spec=pinecone.ServerlessSpec(
+                cloud="aws",
+                region="us-east-1"
+            )
+        )
+    except Exception as e:
+        plpy.notice(f"Index creation skipped: {str(e)}")
+
+    # Create vector store and add document
+    embeddings = OpenAIEmbeddings()
+    vectorstore = PineconeVectorStore.from_existing_index(
+        index_name=index_name,
+        embedding=embeddings
+    )
+
+    # Add metadata about the file
+    metadata = json.loads(metadata) if isinstance(metadata, str) else metadata
+    metadata.update({
+        'file_key': file_key,
+        'bucket': bucket
+    })
+
+    # Add document to vector store
+    vectorstore.add_texts(
+        texts=[content],
+        metadatas=[metadata]
+    )
+
+    plpy.notice(f"Successfully indexed document: {file_key}")
+
+except Exception as e:
+    plpy.error(f"Error indexing document: {str(e)}")
+
+$$ LANGUAGE plpython3u SECURITY DEFINER;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) IS 
+'Indexes a document in Pinecone for later retrieval using semantic search.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) TO PUBLIC;
+
+-- Create function for searching documents
+CREATE OR REPLACE FUNCTION search_documents(
+    search_query TEXT,
+    max_results INTEGER DEFAULT 3
+) RETURNS TABLE(
+    file_key TEXT,
+    bucket TEXT,
+    score FLOAT,
+    metadata JSONB
+) AS $$
+# Allow importing external modules
+import sys
+sys.path.append('/usr/local/lib/python3.11/site-packages')
+
+import os
+from dotenv import load_dotenv
+from langchain_openai import OpenAIEmbeddings
+from langchain_pinecone import PineconeVectorStore
+import pinecone
+
+# Load environment variables
+load_dotenv()
+
+try:
+    # Initialize Pinecone
+    pc = pinecone.Pinecone()
+    index_name = "documents"
+
+    # Create vector store connection
+    embeddings = OpenAIEmbeddings()
+    vectorstore = PineconeVectorStore.from_existing_index(
+        index_name=index_name,
+        embedding=embeddings
+    )
+
+    # Perform similarity search
+    results = vectorstore.similarity_search_with_score(
+        query=search_query,
+        k=max_results
+    )
+
+    # Format results for return
+    return_results = []
+    for doc, score in results:
+        metadata = doc.metadata
+        return_results.append({
+            "file_key": metadata.get("file_key"),
+            "bucket": metadata.get("bucket"),
+            "score": float(score),
+            "metadata": metadata
+        })
+
+    return return_results
+
+except Exception as e:
+    plpy.error(f"Error searching documents: {str(e)}")
+    return []
+
+$$ LANGUAGE plpython3u SECURITY DEFINER;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION search_documents(TEXT, INTEGER) IS 
+'Searches for documents in Pinecone using semantic similarity.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION search_documents(TEXT, INTEGER) TO PUBLIC;

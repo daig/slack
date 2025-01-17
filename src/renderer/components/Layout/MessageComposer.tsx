@@ -104,6 +104,17 @@ const CREATE_MESSAGE_WITH_FILE = gql`
   }
 `;
 
+const SEARCH_DOCUMENTS = gql`
+  query SearchDocuments($query: String!, $limit: Int) {
+    searchDocuments(query: $query, limit: $limit) {
+      fileKey
+      bucket
+      score
+      metadata
+    }
+  }
+`;
+
 const useCreateMessage = () => {
   const [createMessage, { loading, error }] = useMutation(CREATE_MESSAGE);
 
@@ -205,6 +216,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     const [popupContent, setPopupContent] = useState('');
     const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
     const [pendingAttachment, setPendingAttachment] = useState<FileAttachment | null>(null);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
 
     const [createMessageWithFile] = useMutation(CREATE_MESSAGE_WITH_FILE);
 
@@ -216,6 +229,18 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     const { data: userChannelsData } = useQuery(GET_USER_CHANNELS, {
         variables: { userId },
         skip: !userId
+    });
+
+    const [searchDocuments, { loading: searchLoading }] = useLazyQuery(SEARCH_DOCUMENTS, {
+        onCompleted: (data) => {
+            setSearchResults(data.searchDocuments);
+            setShowSearchResults(true);
+        },
+        onError: (error) => {
+            console.error('Failed to search documents:', error);
+            setSearchResults([]);
+            setShowSearchResults(true);
+        }
     });
 
     const users: SuggestionDataItem[] = React.useMemo(() => {
@@ -291,6 +316,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
         askQuestion({
             variables: {
                 question: messageContent.trim()
+            }
+        });
+    };
+
+    const handleSearch = async () => {
+        if (!messageContent.trim()) return;
+        
+        searchDocuments({
+            variables: {
+                query: messageContent.trim(),
+                limit: 3
             }
         });
     };
@@ -460,6 +496,27 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                     </button>
                     <button
                         type="button"
+                        onClick={handleSearch}
+                        disabled={!messageContent.trim() || searchLoading}
+                        className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 ${
+                            searchLoading || !messageContent.trim()
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 text-white hover:bg-green-500 active:bg-green-700'
+                        }`}
+                    >
+                        {searchLoading ? (
+                            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        ) : (
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        )}
+                    </button>
+                    <button
+                        type="button"
                         onClick={handleAsk}
                         disabled={!messageContent.trim() || askLoading}
                         className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600 ${
@@ -505,6 +562,44 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                             </button>
                         </div>
                         <p className="text-gray-700 whitespace-pre-wrap">{popupContent}</p>
+                    </div>
+                </div>
+            )}
+
+            {showSearchResults && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-lg font-semibold">Search Results</h3>
+                            <button
+                                onClick={() => setShowSearchResults(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {searchResults.length > 0 ? (
+                            <div className="space-y-4">
+                                {searchResults.map((result, index) => (
+                                    <div key={index} className="border rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium">{result.metadata.fileName}</span>
+                                            <span className="text-sm text-gray-500">
+                                                Score: {(1 - result.score).toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm text-gray-600">
+                                            <p>Uploaded by: {result.metadata.uploadedBy}</p>
+                                            <p>Uploaded at: {new Date(result.metadata.uploadedAt).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-gray-700">No matching documents found.</p>
+                        )}
                     </div>
                 </div>
             )}
