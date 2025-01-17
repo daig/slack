@@ -51,13 +51,36 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         }
       });
 
-      // Log the response for debugging
-      console.log('Presigned URL Response:', data.generateS3PresignedUrl.s3PresignedUrlResponse);
-      setUploadStatus(JSON.stringify(data.generateS3PresignedUrl.s3PresignedUrlResponse, null, 2));
+      const { presignedUrl, fileKey, bucket } = data.generateS3PresignedUrl.s3PresignedUrlResponse;
+
+      // Upload the file using the presigned URL
+      await fetch(presignedUrl, {
+        method: 'PUT',
+        body: selectedFile,
+        headers: {
+          'Content-Type': selectedFile.type,
+        },
+      });
+
+      // Option 1: If your bucket allows public access, construct the public URL
+      const publicUrl = `https://${bucket}.s3.amazonaws.com/${fileKey}`;
+      
+      // Option 2: Generate another presigned URL for downloading (you'll need to add this mutation)
+      // const { data: downloadData } = await generateDownloadUrl({
+      //   variables: {
+      //     input: {
+      //       fileKey,
+      //       bucket
+      //     }
+      //   }
+      // });
+      // const downloadUrl = downloadData.generateDownloadUrl.presignedUrl;
+
+      setUploadStatus(`File uploaded successfully!\nDownload URL: ${publicUrl}`);
 
     } catch (error) {
-      console.error('Error generating presigned URL:', error);
-      setUploadStatus('Error generating upload URL');
+      console.error('Error uploading file:', error);
+      setUploadStatus('Error uploading file');
     }
   };
 
