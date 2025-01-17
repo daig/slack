@@ -29,7 +29,7 @@ INSERT INTO channels (name, is_dm)
 SELECT DISTINCT TRIM('#' FROM Channel), FALSE
 FROM chats
 WHERE TRIM('#' FROM Channel) IS NOT NULL
-ON CONFLICT ON CONSTRAINT idx_channels_name DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 
 insert into messages (content, user_id, updated_at)
