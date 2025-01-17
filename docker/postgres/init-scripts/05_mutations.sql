@@ -453,7 +453,7 @@ try:
         'uploadedBy': doc_metadata.get('uploadedBy', ''),
         'uploadedAt': doc_metadata.get('uploadedAt', ''),
         'fileSize': doc_metadata.get('fileSize', len(content) if content else 0)
-        -- Note: 'text' field is intentionally omitted
+        # Note: 'text' field is intentionally omitted
     }
 
     # Debugging: Ensure 'text' is not in metadata
@@ -462,7 +462,7 @@ try:
     # Add document to vector store
     vectorstore.add_texts(
         texts=[content],
-        metadatas=[essential_metadata]  -- Ensure only essential metadata is passed
+        metadatas=[essential_metadata]  # Ensure only essential metadata is passed
     )
 
     plpy.notice(f"Successfully indexed document: {file_key}")
