@@ -1,7 +1,7 @@
-
 CREATE TABLE users ( -- Users table: Stores user account information
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), -- Unique identifier for each user using UUID v4
     display_name VARCHAR(50) NOT NULL UNIQUE,
+    bio TEXT, -- User's biography or description
     avatar_url TEXT -- URL to user's profile picture
 );
 
