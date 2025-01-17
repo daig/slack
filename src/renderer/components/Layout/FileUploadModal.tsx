@@ -15,19 +15,61 @@ const GENERATE_PRESIGNED_URL = gql`
   }
 `;
 
+const CREATE_MESSAGE_WITH_FILE = gql`
+  mutation CreateMessageWithFile(
+    $content: String!
+    $userId: UUID!
+    $channelId: UUID!
+    $fileKey: String!
+    $bucket: String!
+    $contentType: String!
+  ) {
+    createMessageWithFile(
+      input: {
+        content: $content
+        userId: $userId
+        channelId: $channelId
+        fileKey: $fileKey
+        bucket: $bucket
+        contentType: $contentType
+      }
+    ) {
+      message {
+        id
+        content
+        userId
+        updatedAt
+        messageChannelsByMessageId {
+          nodes {
+            channelId
+            postedAt
+            isEdited
+          }
+        }
+      }
+    }
+  }
+`;
+
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  channelId: string;
+  userId: string;
 }
 
 export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   isOpen,
   onClose,
+  channelId,
+  userId
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
 
   const [generatePresignedUrl] = useMutation(GENERATE_PRESIGNED_URL);
+  const [createMessageWithFile] = useMutation(CREATE_MESSAGE_WITH_FILE);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -39,6 +81,7 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   const handleUpload = async () => {
     if (!selectedFile) return;
 
+    setIsUploading(true);
     try {
       // Get presigned URL
       const { data } = await generatePresignedUrl({
@@ -62,25 +105,28 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         },
       });
 
-      // Option 1: If your bucket allows public access, construct the public URL
-      const publicUrl = `https://${bucket}.s3.amazonaws.com/${fileKey}`;
-      
-      // Option 2: Generate another presigned URL for downloading (you'll need to add this mutation)
-      // const { data: downloadData } = await generateDownloadUrl({
-      //   variables: {
-      //     input: {
-      //       fileKey,
-      //       bucket
-      //     }
-      //   }
-      // });
-      // const downloadUrl = downloadData.generateDownloadUrl.presignedUrl;
+      // Create message with file attachment
+      await createMessageWithFile({
+        variables: {
+          content: `Uploaded file: ${selectedFile.name}`,
+          userId,
+          channelId,
+          fileKey,
+          bucket,
+          contentType: selectedFile.type
+        }
+      });
 
-      setUploadStatus(`File uploaded successfully!\nDownload URL: ${publicUrl}`);
+      setUploadStatus('File uploaded successfully!');
+      setTimeout(() => {
+        onClose();
+      }, 1000);
 
     } catch (error) {
       console.error('Error uploading file:', error);
       setUploadStatus('Error uploading file');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -129,24 +175,35 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             )}
 
             {uploadStatus && (
-              <pre className="mt-4 p-2 bg-gray-50 rounded text-xs overflow-auto">
+              <div className={`text-sm ${uploadStatus.includes('Error') ? 'text-red-500' : 'text-green-500'}`}>
                 {uploadStatus}
-              </pre>
+              </div>
             )}
 
             <div className="flex justify-end gap-2">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                disabled={isUploading}
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpload}
-                disabled={!selectedFile}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedFile || isUploading}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Upload
+                {isUploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Uploading...
+                  </>
+                ) : (
+                  'Upload'
+                )}
               </button>
             </div>
           </div>

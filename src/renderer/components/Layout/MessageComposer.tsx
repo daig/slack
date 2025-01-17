@@ -401,6 +401,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
             <FileUploadModal
                 isOpen={isFileUploadModalOpen}
                 onClose={() => setIsFileUploadModalOpen(false)}
+                channelId={channelId}
+                userId={userId}
             />
 
             {showPopup && (

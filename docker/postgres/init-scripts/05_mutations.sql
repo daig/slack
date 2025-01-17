@@ -343,3 +343,49 @@ COMMENT ON TYPE s3_presigned_url_response IS
 
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION generate_s3_presigned_url(TEXT, INTEGER, TEXT) TO PUBLIC;
+
+-- Create function for creating a message with file attachment
+CREATE OR REPLACE FUNCTION create_message_with_file(
+    content TEXT,
+    user_id UUID,
+    channel_id UUID,
+    file_key TEXT,
+    bucket TEXT,
+    content_type TEXT
+) RETURNS messages AS $$
+DECLARE
+    new_message messages;
+    new_file_attachment file_attachments;
+BEGIN
+    -- Start transaction
+    BEGIN
+        -- Create the message
+        INSERT INTO messages (content, user_id)
+        VALUES (content, user_id)
+        RETURNING * INTO new_message;
+
+        -- Create the channel association
+        INSERT INTO message_channels (message_id, channel_id)
+        VALUES (new_message.id, channel_id);
+
+        -- Create the file attachment
+        INSERT INTO file_attachments (file_key, bucket, content_type)
+        VALUES (file_key, bucket, content_type)
+        RETURNING * INTO new_file_attachment;
+
+        -- Create the message-file association
+        INSERT INTO message_attachments (message_id, file_id)
+        VALUES (new_message.id, new_file_attachment.id);
+
+        -- Return the created message
+        RETURN new_message;
+    EXCEPTION WHEN OTHERS THEN
+        -- If anything fails, rollback the transaction
+        RAISE;
+    END;
+END;
+$$ LANGUAGE plpgsql STRICT SECURITY DEFINER;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION create_message_with_file(TEXT, UUID, UUID, TEXT, TEXT, TEXT) IS 
+'Creates a new message with an attached file and associates it with a channel.';
