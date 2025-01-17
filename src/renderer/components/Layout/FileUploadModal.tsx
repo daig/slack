@@ -17,7 +17,9 @@ const GENERATE_PRESIGNED_URL = gql`
 
 const INDEX_DOCUMENT = gql`
   mutation IndexDocument($input: IndexDocumentInput!) {
-    indexDocument(input: $input)
+    indexDocument(input: $input) {
+      clientMutationId
+    }
   }
 `;
 
@@ -87,12 +89,12 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
             fileKey,
             bucket,
             content: fileContent,
-            metadata: {
+            metadata: JSON.stringify({
               fileName: selectedFile.name,
               contentType: selectedFile.type,
               uploadedBy: userId,
               uploadedAt: new Date().toISOString()
-            }
+            })
           }
         }
       });

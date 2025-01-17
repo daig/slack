@@ -114,7 +114,7 @@ pc = pinecone.Pinecone()
 
 index_name = "chat-messages"
 
-# Create index if it doesn't exist
+# Create index if it doesnt exist
 try:
     pc.create_index(
         name=index_name,
@@ -416,7 +416,7 @@ try:
     pc = pinecone.Pinecone()
     index_name = "documents"
 
-    # Create index if it doesn't exist
+    # Create index if it doesnt exist
     try:
         pc.create_index(
             name=index_name,
@@ -437,9 +437,15 @@ try:
         embedding=embeddings
     )
 
-    # Add metadata about the file
-    metadata = json.loads(metadata) if isinstance(metadata, str) else metadata
-    metadata.update({
+    # Parse metadata if its a string
+    doc_metadata = {}
+    if isinstance(metadata, str):
+        doc_metadata = json.loads(metadata)
+    else:
+        doc_metadata = dict(metadata)
+
+    # Add file info to metadata
+    doc_metadata.update({
         'file_key': file_key,
         'bucket': bucket
     })
@@ -447,7 +453,7 @@ try:
     # Add document to vector store
     vectorstore.add_texts(
         texts=[content],
-        metadatas=[metadata]
+        metadatas=[doc_metadata]
     )
 
     plpy.notice(f"Successfully indexed document: {file_key}")
@@ -466,8 +472,8 @@ GRANT EXECUTE ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) TO PUBLIC;
 
 -- Create function for searching documents
 CREATE OR REPLACE FUNCTION search_documents(
-    search_query TEXT,
-    max_results INTEGER DEFAULT 3
+    query TEXT,
+    limit INTEGER DEFAULT 3
 ) RETURNS TABLE(
     file_key TEXT,
     bucket TEXT,
@@ -501,8 +507,8 @@ try:
 
     # Perform similarity search
     results = vectorstore.similarity_search_with_score(
-        query=search_query,
-        k=max_results
+        query=query,
+        k=limit
     )
 
     # Format results for return
