@@ -476,6 +476,7 @@ COMMENT ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) IS
 GRANT EXECUTE ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) TO PUBLIC;
 
 -- Create a composite type for search results
+DROP TYPE IF EXISTS search_document_result CASCADE;
 CREATE TYPE search_document_result AS (
     file_key TEXT,
     bucket TEXT,
@@ -526,7 +527,7 @@ try:
             "file_key": match['metadata']['file_key'],
             "bucket": match['metadata']['bucket'],
             "score": float(match['score']),
-            "metadata": json.dumps(match['metadata'])
+            "metadata": match['metadata']  # Return raw metadata without JSON stringifying
         })
 
     return return_results
@@ -540,6 +541,7 @@ $$ LANGUAGE plpython3u SECURITY DEFINER STABLE;
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION search_documents(TEXT, INTEGER) IS 
 '@name searchDocuments
+@simpleCollections only
 Searches for documents in Pinecone using semantic similarity.';
 
 COMMENT ON TYPE search_document_result IS 
