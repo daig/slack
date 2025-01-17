@@ -300,3 +300,36 @@ COMMENT ON FUNCTION ask_message(TEXT) IS
 
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION ask_message(TEXT) TO PUBLIC;
+
+-- Create function for generating S3 presigned URLs
+CREATE OR REPLACE FUNCTION generate_s3_presigned_url(
+    file_name TEXT,
+    file_size INTEGER,
+    content_type TEXT DEFAULT NULL
+) RETURNS JSON AS $$
+# Allow importing external modules
+import sys
+sys.path.append('/usr/local/lib/python3.11/site-packages')
+sys.path.append('/app')
+
+from s3_utils import generate_presigned_url
+
+try:
+    result = generate_presigned_url(
+        file_name=file_name,
+        file_size=file_size,
+        content_type=content_type
+    )
+    return result
+except Exception as e:
+    plpy.error(f"Error generating presigned URL: {str(e)}")
+    return None
+
+$$ LANGUAGE plpython3u SECURITY DEFINER;
+
+-- Add comment for GraphQL documentation
+COMMENT ON FUNCTION generate_s3_presigned_url(TEXT, INTEGER, TEXT) IS 
+'Generates a presigned URL for uploading files to S3, returns JSON with presignedUrl, fileKey, and bucket.';
+
+-- Grant execute permission to allow Postgraphile access
+GRANT EXECUTE ON FUNCTION generate_s3_presigned_url(TEXT, INTEGER, TEXT) TO PUBLIC;
