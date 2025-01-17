@@ -70,7 +70,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChannelId }) => {
-    const { userId } = useUser();
+    const { userId, setUserId } = useUser();
     const [isJoinModalOpen, setIsJoinModalOpen] = React.useState(false);
     
     const [joinChannel] = useMutation(JOIN_CHANNEL, {
@@ -122,8 +122,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('userId');
-        navigate('/login');
+        setUserId(null);
+        navigate('/');
     };
 
     return (

@@ -85,7 +85,7 @@ const UserProfile: React.FC = () => {
   const [getDmChannel, { loading: creatingDm }] = useMutation(GET_DM_CHANNEL, {
     onCompleted: (data) => {
       const channelId = data.getDmChannel.uuid;
-      navigate(`/channels/${channelId}`);
+      navigate('/chat', { state: { selectedChannelId: channelId } });
     },
     onError: (error) => {
       console.error('Error creating DM channel:', error);

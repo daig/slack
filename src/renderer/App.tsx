@@ -4,7 +4,7 @@ import { Sidebar } from './components/Layout/Sidebar';
 import { MessageFeed } from './components/Layout/MessageFeed';
 import { MessageComposer } from './components/Layout/MessageComposer';
 import { client } from './apollo/client';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import SignupPage from './components/Auth/SignupPage';
 import LoginPage from './components/Auth/LoginPage';
 import UserProfile from './components/Profile/UserProfile';
@@ -15,7 +15,10 @@ interface MessageListRef {
 }
 
 const MainLayout: React.FC = () => {
-  const [selectedChannelId, setSelectedChannelId] = useState<string>('');
+  const location = useLocation();
+  const [selectedChannelId, setSelectedChannelId] = useState<string>(
+    (location.state as any)?.selectedChannelId || ''
+  );
   const messageListRef = useRef<MessageListRef>(null);
   const { userId } = useUser();
 
