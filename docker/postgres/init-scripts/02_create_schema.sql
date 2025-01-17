@@ -107,3 +107,29 @@ $$ LANGUAGE sql STABLE;
 -- Add comment to help with GraphQL documentation
 COMMENT ON FUNCTION message_channels_is_edited(message_channels) IS 
 'Indicates whether the message has been edited since it was posted in this channel.';
+
+-- File attachments table: Stores minimal information about uploaded files
+CREATE TABLE file_attachments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    file_key TEXT NOT NULL,  -- The S3 key used to retrieve the file
+    bucket TEXT NOT NULL,    -- The S3 bucket name
+    content_type TEXT        -- MIME type of the file
+);
+
+-- Junction table linking messages to their file attachments
+CREATE TABLE message_attachments (
+    message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+    file_id UUID REFERENCES file_attachments(id) ON DELETE CASCADE,
+    PRIMARY KEY (message_id, file_id)
+);
+
+-- Create indexes for faster lookups
+CREATE INDEX idx_message_attachments_message_id ON message_attachments(message_id);
+CREATE INDEX idx_message_attachments_file_id ON message_attachments(file_id);
+
+-- Add comment to help with GraphQL documentation
+COMMENT ON TABLE file_attachments IS 
+'Stores information about files uploaded to S3.';
+
+COMMENT ON TABLE message_attachments IS 
+'Links messages to their file attachments.';
