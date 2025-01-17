@@ -19,8 +19,32 @@ CREATE TABLE channels ( -- Channels table: Stores chat channels/rooms
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
+    is_private BOOLEAN DEFAULT FALSE,
     CONSTRAINT channel_name_valid CHECK (name ~ '^[a-z0-9_\-]+$') -- Ensures channel name only contains letters, numbers, hyphens, and underscores
 );
+
+CREATE FUNCTION get_dm_channel(user_id_1 UUID, user_id_2 UUID) RETURNS UUID AS $$
+DECLARE
+    channel_id UUID := uuid_combine(user_id_1, user_id_2);
+BEGIN
+    INSERT INTO channels (id, name, is_private) 
+    VALUES (
+        channel_id, 
+        (SELECT string_agg(display_name, '<>') 
+         FROM users 
+         WHERE id IN (user_id_1, user_id_2)
+         ORDER BY display_name),
+        TRUE)
+    ON CONFLICT (id) DO NOTHING;
+    
+    INSERT INTO channel_members (channel_id, user_id) 
+    VALUES (channel_id, user_id_1), (channel_id, user_id_2)
+    ON CONFLICT DO NOTHING;
+    
+    RETURN channel_id;
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- Modify messages table (remove the channel_id column)
 CREATE TABLE messages (
@@ -42,6 +66,8 @@ CREATE TABLE message_channels (
 );
 CREATE INDEX idx_message_channels_channel_name ON message_channels(channel_id);
 CREATE INDEX idx_message_channels_message_id ON message_channels(message_id);
+
+
 
 CREATE TABLE channel_members ( -- Channel members table: Maps users to channels they're subscribed to
     channel_id UUID REFERENCES channels(id) ON DELETE CASCADE, -- Reference to the channel
