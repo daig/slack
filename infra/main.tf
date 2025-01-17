@@ -128,3 +128,34 @@ resource "aws_instance" "app" {
 output "public_ip" {
   value = aws_instance.app.public_ip
 }
+
+# S3 Bucket for file uploads
+resource "aws_s3_bucket" "uploads" {
+  bucket = "dai-slack-app-uploads"  # Change this to your desired bucket name
+}
+
+# Enable versioning
+resource "aws_s3_bucket_versioning" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Configure CORS for the bucket
+resource "aws_s3_bucket_cors_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT", "POST"]
+    allowed_origins = ["*"]  # Replace with your frontend domain in production
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
+# Output the bucket name
+output "uploads_bucket_name" {
+  value = aws_s3_bucket.uploads.id
+}
