@@ -473,7 +473,7 @@ GRANT EXECUTE ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) TO PUBLIC;
 -- Create function for searching documents
 CREATE OR REPLACE FUNCTION search_documents(
     query TEXT,
-    limit INTEGER DEFAULT 3
+    max_results INTEGER DEFAULT 3
 ) RETURNS TABLE(
     file_key TEXT,
     bucket TEXT,
@@ -508,7 +508,7 @@ try:
     # Perform similarity search
     results = vectorstore.similarity_search_with_score(
         query=query,
-        k=limit
+        k=max_results
     )
 
     # Format results for return

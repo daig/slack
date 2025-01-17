@@ -105,8 +105,8 @@ const CREATE_MESSAGE_WITH_FILE = gql`
 `;
 
 const SEARCH_DOCUMENTS = gql`
-  query SearchDocuments($query: String!, $limit: Int) {
-    searchDocuments(query: $query, limit: $limit) {
+  query SearchDocuments($query: String!, $maxResults: Int) {
+    searchDocuments(query: $query, maxResults: $maxResults) {
       fileKey
       bucket
       score
@@ -326,7 +326,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
         searchDocuments({
             variables: {
                 query: messageContent.trim(),
-                limit: 3
+                maxResults: 3
             }
         });
     };
