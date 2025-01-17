@@ -25,10 +25,11 @@ ON CONFLICT (email) DO NOTHING;
 
 
 -- Create channels if they don't exist
-INSERT INTO channels (name)
-SELECT DISTINCT TRIM('#' FROM Channel)
+INSERT INTO channels (name, is_dm)
+SELECT DISTINCT TRIM('#' FROM Channel), FALSE
 FROM chats
-ON CONFLICT (name) DO NOTHING;
+WHERE TRIM('#' FROM Channel) IS NOT NULL
+ON CONFLICT ON CONSTRAINT idx_channels_name DO NOTHING;
 
 
 insert into messages (content, user_id, updated_at)
