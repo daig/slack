@@ -9,7 +9,10 @@ console.log("Database URL:", process.env.DATABASE_URL || "postgres://user:pass@h
 
 // Configure CORS
 const corsOptions = {
-  origin: process.env.REACT_APP_GRAPHQL_ENDPOINT ? `http://${new URL(process.env.REACT_APP_GRAPHQL_ENDPOINT).hostname}` : 'http://localhost',
+  origin: [
+    process.env.REACT_APP_GRAPHQL_ENDPOINT ? `http://${new URL(process.env.REACT_APP_GRAPHQL_ENDPOINT).hostname}` : 'http://localhost',
+    'http://172.56.73.35'
+  ],
   credentials: true
 };
 
