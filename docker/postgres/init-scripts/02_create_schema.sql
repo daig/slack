@@ -26,15 +26,18 @@ CREATE TABLE channels ( -- Channels table: Stores chat channels/rooms
 CREATE FUNCTION get_dm_channel(user_id_1 UUID, user_id_2 UUID) RETURNS UUID AS $$
 DECLARE
     channel_id UUID := uuid_combine(user_id_1, user_id_2);
+    channel_name TEXT;
 BEGIN
+    SELECT string_agg(display_name, '<>') INTO channel_name
+    FROM (
+        SELECT display_name 
+        FROM users 
+        WHERE id IN (user_id_1, user_id_2)
+        ORDER BY display_name
+    ) u;
+
     INSERT INTO channels (id, name, is_private) 
-    VALUES (
-        channel_id, 
-        (SELECT string_agg(display_name, '<>') 
-         FROM users 
-         WHERE id IN (user_id_1, user_id_2)
-         ORDER BY display_name),
-        TRUE)
+    VALUES (channel_id, channel_name, TRUE)
     ON CONFLICT (id) DO NOTHING;
     
     INSERT INTO channel_members (channel_id, user_id) 
