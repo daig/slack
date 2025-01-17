@@ -403,15 +403,17 @@ sys.path.append('/usr/local/lib/python3.11/site-packages')
 
 import os
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
 import pinecone
+from langchain_openai import OpenAIEmbeddings
 import json
 
 # Load environment variables
 load_dotenv()
 
 try:
+    # Initialize OpenAI embeddings
+    embeddings = OpenAIEmbeddings()
+    
     # Initialize Pinecone
     pc = pinecone.Pinecone()
     index_name = "documents"
@@ -428,51 +430,41 @@ try:
             )
         )
     except Exception as e:
-        plpy.notice(f"Index creation skipped: {str(e)}")
+        plpy.notice(f"Index exists or creation skipped: {str(e)}")
 
-    # Create vector store and add document
-    embeddings = OpenAIEmbeddings()
-    vectorstore = PineconeVectorStore.from_existing_index(
-        index_name=index_name,
-        embedding=embeddings
-    )
+    # Get index
+    index = pc.Index(index_name)
 
-    # Parse metadata if its a string
-    doc_metadata = {}
-    if isinstance(metadata, str):
-        doc_metadata = json.loads(metadata)
-    else:
-        doc_metadata = dict(metadata)
-
-    # Extract only essential metadata fields
-    essential_metadata = {
+    # Parse metadata
+    meta = json.loads(metadata) if isinstance(metadata, str) else dict(metadata)
+    
+    # Create clean metadata
+    clean_metadata = {
         'file_key': file_key,
         'bucket': bucket,
-        'fileName': doc_metadata.get('fileName', ''),
-        'contentType': doc_metadata.get('contentType', ''),
-        'uploadedBy': doc_metadata.get('uploadedBy', ''),
-        'uploadedAt': doc_metadata.get('uploadedAt', ''),
-        'fileSize': doc_metadata.get('fileSize', len(content) if content else 0)
-        # Note: 'text' field is intentionally omitted
+        'file_name': meta.get('fileName', ''),
+        'content_type': meta.get('contentType', ''),
+        'uploaded_by': meta.get('uploadedBy', ''),
+        'uploaded_at': meta.get('uploadedAt', ''),
+        'file_size': meta.get('fileSize', 0)
     }
 
-    # Remove 'text' field if present
-    if 'text' in essential_metadata:
-        del essential_metadata['text']
+    # Generate embedding for the content
+    vector = embeddings.embed_query(content)
 
-    # Debugging: Ensure 'text' is not in metadata
-    plpy.notice(f" XXXXXXXXXXX Essential metadata being sent to Pinecone: {essential_metadata}")
-
-    # Add document to vector store
-    vectorstore.add_texts(
-        texts=[content],
-        metadatas=[essential_metadata]  # Ensure only essential metadata is passed
+    # Upsert to Pinecone with a unique ID
+    index.upsert(
+        vectors=[{
+            'id': file_key,  # Use file_key as the unique identifier
+            'values': vector,
+            'metadata': clean_metadata
+        }]
     )
 
     plpy.notice(f"Successfully indexed document: {file_key}")
 
 except Exception as e:
-     plpy.error(f"Error indexing document: {str(e)}")
+    plpy.error(f"Error indexing document: {str(e)}")
 
 $$ LANGUAGE plpython3u SECURITY DEFINER;
 
@@ -499,40 +491,39 @@ sys.path.append('/usr/local/lib/python3.11/site-packages')
 
 import os
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
 import pinecone
+from langchain_openai import OpenAIEmbeddings
+import json
 
 # Load environment variables
 load_dotenv()
 
 try:
+    # Initialize OpenAI embeddings
+    embeddings = OpenAIEmbeddings()
+    
     # Initialize Pinecone
     pc = pinecone.Pinecone()
-    index_name = "documents"
+    index = pc.Index("documents")
 
-    # Create vector store connection
-    embeddings = OpenAIEmbeddings()
-    vectorstore = PineconeVectorStore.from_existing_index(
-        index_name=index_name,
-        embedding=embeddings
-    )
+    # Generate query embedding
+    query_embedding = embeddings.embed_query(query)
 
-    # Perform similarity search
-    results = vectorstore.similarity_search_with_score(
-        query=query,
-        k=max_results
+    # Search in Pinecone
+    results = index.query(
+        vector=query_embedding,
+        top_k=max_results,
+        include_metadata=True
     )
 
     # Format results for return
     return_results = []
-    for doc, score in results:
-        metadata = doc.metadata
+    for match in results['matches']:
         return_results.append({
-            "file_key": metadata.get("file_key"),
-            "bucket": metadata.get("bucket"),
-            "score": float(score),
-            "metadata": metadata
+            "file_key": match['metadata']['file_key'],
+            "bucket": match['metadata']['bucket'],
+            "score": float(match['score']),
+            "metadata": json.dumps(match['metadata'])
         })
 
     return return_results
