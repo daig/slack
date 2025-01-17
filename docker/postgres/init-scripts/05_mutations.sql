@@ -464,7 +464,7 @@ try:
     plpy.notice(f"Successfully indexed document: {file_key}")
 
 except Exception as e:
-    plpy.error(f"Error indexing document: {str(e)}")
+    plpy.error(f"Error indexing document: {str(e)}\n metadata:{essential_metadata}")
 
 $$ LANGUAGE plpython3u SECURITY DEFINER;
 
