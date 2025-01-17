@@ -121,6 +121,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
         return `@${otherUser?.userByUserId?.displayName || 'Unknown User'}`;
     };
 
+    // Separate and sort channels
+    const sortedChannels = [...channels].sort((a, b) => {
+        const channelA = a.channelByChannelId;
+        const channelB = b.channelByChannelId;
+        
+        // If one is DM and other isn't, non-DM comes first
+        if (channelA.isDm !== channelB.isDm) {
+            return channelA.isDm ? 1 : -1;
+        }
+
+        // Both are the same type, sort by display name
+        const nameA = getChannelDisplayName(channelA);
+        const nameB = getChannelDisplayName(channelB);
+        return nameA.localeCompare(nameB);
+    });
+
     const handleLogout = () => {
         setUserId(null);
         navigate('/');
@@ -141,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
             
             <div className="flex-1 overflow-y-auto">
                 <ul className="px-2">
-                    {channels.map((channel: any) => (
+                    {sortedChannels.map((channel: any) => (
                         <li 
                             key={channel.channelByChannelId.id}
                             onClick={() => onChannelSelect(channel.channelByChannelId.id)}
