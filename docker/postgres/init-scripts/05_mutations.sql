@@ -444,16 +444,21 @@ try:
     else:
         doc_metadata = dict(metadata)
 
-    # Add file info to metadata
-    doc_metadata.update({
+    # Extract only essential metadata fields
+    essential_metadata = {
         'file_key': file_key,
-        'bucket': bucket
-    })
+        'bucket': bucket,
+        'fileName': doc_metadata.get('fileName', ''),
+        'contentType': doc_metadata.get('contentType', ''),
+        'uploadedBy': doc_metadata.get('uploadedBy', ''),
+        'uploadedAt': doc_metadata.get('uploadedAt', ''),
+        'fileSize': len(content) if content else 0
+    }
 
     # Add document to vector store
     vectorstore.add_texts(
         texts=[content],
-        metadatas=[doc_metadata]
+        metadatas=[essential_metadata]
     )
 
     plpy.notice(f"Successfully indexed document: {file_key}")
