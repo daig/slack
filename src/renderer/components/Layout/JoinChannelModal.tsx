@@ -5,6 +5,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 interface Channel {
   id: string;
   name: string;
+  isDm: boolean;
   channelMembersByChannelId: {
     nodes: Array<{
       userId: string;
@@ -29,9 +30,11 @@ export const JoinChannelModal: React.FC<JoinChannelModalProps> = ({
   userId,
   isLoading
 }) => {
-  // Filter out channels the user is already a member of
+  // Filter out channels the user is already a member of and DM channels
   const filteredChannels = availableChannels.filter(channel => 
-    userId && !channel.channelMembersByChannelId.nodes.some(member => member.userId === userId)
+    userId && 
+    !channel.isDm && 
+    !channel.channelMembersByChannelId.nodes.some(member => member.userId === userId)
   );
 
   return (

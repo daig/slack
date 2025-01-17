@@ -6,6 +6,15 @@ const GET_MESSAGES = gql`
   query GetMessages($channelId: UUID!) {
     channelById(id: $channelId) {
       name
+      isDm
+      channelMembersByChannelId {
+        nodes {
+          userByUserId {
+            id
+            displayName
+          }
+        }
+      }
       messageChannelsByChannelId(orderBy: POSTED_AT_ASC) {
         nodes {
           isEdited
@@ -117,13 +126,28 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
     </div>
   );
 
+  const getChannelDisplayName = () => {
+    const channel = data?.channelById;
+    if (!channel) return 'Unknown Channel';
+
+    if (!channel.isDm) {
+      return channel.name;
+    }
+
+    // For DM channels, find the other user's display name
+    const otherUser = channel.channelMembersByChannelId.nodes.find(
+      (member: any) => member.userByUserId.id !== userId
+    );
+    return otherUser?.userByUserId?.displayName || 'Unknown User';
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
         <div className="flex items-center">
-          <span className="text-gray-500 text-2xl mr-2">#</span>
+          <span className="text-gray-500 text-2xl mr-2">{data?.channelById?.isDm ? '@' : '#'}</span>
           <h1 className="text-xl font-semibold text-gray-900">
-            {data?.channelById?.name || 'Unknown Channel'}
+            {getChannelDisplayName()}
           </h1>
         </div>
       </div>

@@ -13,6 +13,15 @@ const GET_USER_CHANNELS = gql`
           channelByChannelId {
             id
             name
+            isDm
+            channelMembersByChannelId {
+              nodes {
+                userByUserId {
+                  id
+                  displayName
+                }
+              }
+            }
           }
         }
       }
@@ -26,6 +35,7 @@ const GET_AVAILABLE_CHANNELS = gql`
       nodes {
         id
         name
+        isDm
         channelMembersByChannelId {
           nodes {
             userId
@@ -73,9 +83,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
         error: availableError 
     } = useQuery(GET_AVAILABLE_CHANNELS);
 
-    console.log('Available Channels Data:', availableData);
-    console.log('Current userId:', userId);
-
     const handleJoinChannel = async (channelId: string) => {
         if (!userId) return;
         
@@ -101,6 +108,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
     if (error) return <div className="sidebar">Error: {error.message}</div>;
 
     const channels = data?.userById?.channelMembersByUserId?.nodes || [];
+
+    const getChannelDisplayName = (channel: any) => {
+        if (!channel.isDm) {
+            return `# ${channel.name}`;
+        }
+
+        // For DM channels, find the other user's display name
+        const otherUser = channel.channelMembersByChannelId.nodes.find(
+            (member: any) => member.userByUserId.id !== userId
+        );
+        return `@${otherUser?.userByUserId?.displayName || 'Unknown User'}`;
+    };
 
     const handleLogout = () => {
         localStorage.removeItem('userId');
@@ -132,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
                                     : ''
                             }`}
                         >
-                            # {channel.channelByChannelId.name}
+                            {getChannelDisplayName(channel.channelByChannelId)}
                         </li>
                     ))}
                 </ul>
@@ -165,4 +184,4 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
             />
         </div>
     );
-}; 
+} 
