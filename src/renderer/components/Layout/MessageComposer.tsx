@@ -68,6 +68,42 @@ const GET_USER_CHANNELS = gql`
   }
 `;
 
+const CREATE_MESSAGE_WITH_FILE = gql`
+  mutation CreateMessageWithFile(
+    $content: String!
+    $userId: UUID!
+    $channelId: UUID!
+    $fileKey: String!
+    $bucket: String!
+    $contentType: String!
+  ) {
+    createMessageWithFile(
+      input: {
+        content: $content
+        userId: $userId
+        channelId: $channelId
+        fileKey: $fileKey
+        bucket: $bucket
+        contentType: $contentType
+      }
+    ) {
+      message {
+        id
+        content
+        userId
+        updatedAt
+        messageChannelsByMessageId {
+          nodes {
+            channelId
+            postedAt
+            isEdited
+          }
+        }
+      }
+    }
+  }
+`;
+
 const useCreateMessage = () => {
   const [createMessage, { loading, error }] = useMutation(CREATE_MESSAGE);
 
@@ -147,6 +183,15 @@ const useTextToSpeech = () => {
   };
 };
 
+interface FileAttachment {
+    file: File;
+    uploadInfo: {
+        fileKey: string;
+        bucket: string;
+        contentType: string;
+    };
+}
+
 interface MessageComposerProps {
     channelId: string;
     userId: string;
@@ -159,6 +204,9 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     const [showPopup, setShowPopup] = useState(false);
     const [popupContent, setPopupContent] = useState('');
     const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
+    const [pendingAttachment, setPendingAttachment] = useState<FileAttachment | null>(null);
+
+    const [createMessageWithFile] = useMutation(CREATE_MESSAGE_WITH_FILE);
 
     const { data: channelData } = useQuery(GET_CHANNEL_MEMBERS, {
         variables: { channelId },
@@ -204,18 +252,37 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     });
 
     const handleSend = async () => {
-        if (!messageContent.trim()) return;
+        if (!messageContent.trim() && !pendingAttachment) return;
         
         try {
-            await sendMessage(
-                messageContent.trim(),
-                userId,
-                channelId
-            );
+            if (pendingAttachment) {
+                await createMessageWithFile({
+                    variables: {
+                        content: messageContent.trim(),
+                        userId,
+                        channelId,
+                        fileKey: pendingAttachment.uploadInfo.fileKey,
+                        bucket: pendingAttachment.uploadInfo.bucket,
+                        contentType: pendingAttachment.uploadInfo.contentType
+                    }
+                });
+            } else {
+                await sendMessage(
+                    messageContent.trim(),
+                    userId,
+                    channelId
+                );
+            }
             setMessageContent('');
+            setPendingAttachment(null);
         } catch (err) {
             console.error('Failed to send message:', err);
         }
+    };
+
+    const handleFileUploadComplete = (file: File, uploadInfo: { fileKey: string; bucket: string; contentType: string }) => {
+        setPendingAttachment({ file, uploadInfo });
+        setIsFileUploadModalOpen(false);
     };
 
     const handleAsk = async () => {
@@ -288,7 +355,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
 
     return (
         <div className="message-composer relative" style={composerStyles}>
-            <form onSubmit={handleSend} className="flex flex-col gap-2">
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex flex-col gap-2">
                 <div className="relative">
                     <MentionsInput
                         value={messageContent}
@@ -338,6 +405,23 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                             }}
                         />
                     </MentionsInput>
+                    {pendingAttachment && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded-md flex items-center gap-2">
+                            <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            <span className="text-sm text-gray-700">{pendingAttachment.file.name}</span>
+                            <button
+                                type="button"
+                                onClick={() => setPendingAttachment(null)}
+                                className="ml-auto text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
                 </div>
                 <div className="flex gap-2">
                     <button
@@ -356,9 +440,9 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                     </button>
                     <button
                         type="submit"
-                        disabled={!channelId}
+                        disabled={!channelId || (!messageContent.trim() && !pendingAttachment)}
                         className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
-                            loading || !messageContent.trim()
+                            loading || (!messageContent.trim() && !pendingAttachment)
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700'
                         }`}
@@ -403,6 +487,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                 onClose={() => setIsFileUploadModalOpen(false)}
                 channelId={channelId}
                 userId={userId}
+                onUploadComplete={handleFileUploadComplete}
             />
 
             {showPopup && (

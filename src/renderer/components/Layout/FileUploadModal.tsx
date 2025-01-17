@@ -15,61 +15,26 @@ const GENERATE_PRESIGNED_URL = gql`
   }
 `;
 
-const CREATE_MESSAGE_WITH_FILE = gql`
-  mutation CreateMessageWithFile(
-    $content: String!
-    $userId: UUID!
-    $channelId: UUID!
-    $fileKey: String!
-    $bucket: String!
-    $contentType: String!
-  ) {
-    createMessageWithFile(
-      input: {
-        content: $content
-        userId: $userId
-        channelId: $channelId
-        fileKey: $fileKey
-        bucket: $bucket
-        contentType: $contentType
-      }
-    ) {
-      message {
-        id
-        content
-        userId
-        updatedAt
-        messageChannelsByMessageId {
-          nodes {
-            channelId
-            postedAt
-            isEdited
-          }
-        }
-      }
-    }
-  }
-`;
-
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   channelId: string;
   userId: string;
+  onUploadComplete: (file: File, uploadInfo: { fileKey: string; bucket: string; contentType: string }) => void;
 }
 
 export const FileUploadModal: React.FC<FileUploadModalProps> = ({
   isOpen,
   onClose,
   channelId,
-  userId
+  userId,
+  onUploadComplete
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
 
   const [generatePresignedUrl] = useMutation(GENERATE_PRESIGNED_URL);
-  const [createMessageWithFile] = useMutation(CREATE_MESSAGE_WITH_FILE);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -105,22 +70,13 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({
         },
       });
 
-      // Create message with file attachment
-      await createMessageWithFile({
-        variables: {
-          content: `Uploaded file: ${selectedFile.name}`,
-          userId,
-          channelId,
-          fileKey,
-          bucket,
-          contentType: selectedFile.type
-        }
+      onUploadComplete(selectedFile, {
+        fileKey,
+        bucket,
+        contentType: selectedFile.type
       });
 
       setUploadStatus('File uploaded successfully!');
-      setTimeout(() => {
-        onClose();
-      }, 1000);
 
     } catch (error) {
       console.error('Error uploading file:', error);

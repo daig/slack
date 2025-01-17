@@ -26,6 +26,16 @@ const GET_MESSAGES = gql`
               displayName
               avatarUrl
             }
+            messageAttachmentsByMessageId {
+              nodes {
+                fileAttachmentByFileId {
+                  id
+                  fileKey
+                  bucket
+                  contentType
+                }
+              }
+            }
           }
           postedAt
         }
@@ -84,6 +94,38 @@ const renderMessageWithMentions = (content: string, onChannelSelect: (channelId:
   }
 
   return <>{parts}</>;
+};
+
+const renderFileAttachment = (attachment: any) => {
+  const { fileKey, bucket, contentType } = attachment.fileAttachmentByFileId;
+  const isImage = contentType.startsWith('image/');
+  const fileName = fileKey.split('/').pop();
+
+  return (
+    <div key={fileKey} className="mt-2 flex items-start space-x-2 bg-gray-50 p-2 rounded-md">
+      {isImage ? (
+        <img 
+          src={`https://${bucket}.s3.amazonaws.com/${fileKey}`}
+          alt={fileName}
+          className="max-w-xs max-h-48 rounded-md"
+        />
+      ) : (
+        <div className="flex items-center space-x-2">
+          <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+          </svg>
+          <a 
+            href={`https://${bucket}.s3.amazonaws.com/${fileKey}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {fileName}
+          </a>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect: (channelId: string) => void }> = ({ channelId, userId, onChannelSelect }) => {
@@ -198,6 +240,9 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
                     <p className="mt-1 text-gray-700 whitespace-pre-wrap break-words">
                       {renderMessageWithMentions(messageChannel.messageByMessageId?.content, onChannelSelect)}
                     </p>
+                    {messageChannel.messageByMessageId?.messageAttachmentsByMessageId?.nodes?.map((attachment: any) => 
+                      renderFileAttachment(attachment)
+                    )}
                   </div>
                 </div>
               </div>
