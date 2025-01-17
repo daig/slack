@@ -582,29 +582,38 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                         </div>
                         {searchResults.length > 0 ? (
                             <div className="space-y-4">
-                                {searchResults.map((result, index) => (
-                                    <div key={index} className="border rounded-lg p-4">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">{result.metadata.fileName || 'Unnamed file'}</span>
-                                            <span className="text-sm text-gray-500">
-                                                Score: {(result.score * 100).toFixed(0)}%
-                                            </span>
+                                {searchResults.map((result, index) => {
+                                    // Parse the metadata JSON string
+                                    const metadata = JSON.parse(result.metadata);
+                                    return (
+                                        <div key={index} className="border rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-medium">{metadata.fileName || 'Unnamed file'}</span>
+                                                <span className="text-sm text-gray-500">
+                                                    Score: {(result.score * 100).toFixed(0)}%
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-gray-600 space-y-2">
+                                                <p>Uploaded by: {metadata.uploadedBy || 'Unknown'}</p>
+                                                <p>Uploaded at: {metadata.uploadedAt ? new Date(metadata.uploadedAt).toLocaleString() : 'Unknown'}</p>
+                                                <p>Size: {metadata.fileSize ? `${(metadata.fileSize / 1024).toFixed(2)} KB` : 'Unknown'}</p>
+                                                <p>Type: {metadata.contentType || 'Unknown'}</p>
+                                                <a 
+                                                    href={metadata.downloadUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        window.open(metadata.downloadUrl, '_blank');
+                                                    }}
+                                                >
+                                                    Download File
+                                                </a>
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-gray-600 space-y-2">
-                                            <p>Uploaded by: {result.metadata.uploadedBy || 'Unknown'}</p>
-                                            <p>Uploaded at: {result.metadata.uploadedAt ? new Date(result.metadata.uploadedAt).toLocaleString() : 'Unknown'}</p>
-                                            <p>Size: {result.metadata.fileSize ? `${(result.metadata.fileSize / 1024).toFixed(2)} KB` : 'Unknown'}</p>
-                                            <a 
-                                                href={result.metadata.downloadUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                            >
-                                                Download File
-                                            </a>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <p className="text-gray-700">No matching documents found.</p>
