@@ -96,7 +96,7 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
 
   const { loading, error, data } = useQuery(GET_MESSAGES, {
     variables: { channelId },
-    pollInterval: 100,
+    pollInterval: 1000,
     fetchPolicy: 'network-only',
   });
 

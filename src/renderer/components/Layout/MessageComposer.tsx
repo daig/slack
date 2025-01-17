@@ -59,6 +59,7 @@ const GET_USER_CHANNELS = gql`
           channelByChannelId {
             id
             name
+            isDm
           }
         }
       }
@@ -179,12 +180,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
 
     const channels: SuggestionDataItem[] = React.useMemo(() => {
         if (!userChannelsData?.userById?.channelMembersByUserId?.nodes) return [];
-        return userChannelsData.userById.channelMembersByUserId.nodes.map(
-            (node: any) => ({
+        return userChannelsData.userById.channelMembersByUserId.nodes
+            .filter((node: any) => !node.channelByChannelId.isDm && node.channelByChannelId.name)
+            .map((node: any) => ({
                 id: node.channelByChannelId.id,
                 display: node.channelByChannelId.name
-            })
-        );
+            }));
     }, [userChannelsData]);
 
     const [askQuestion, { loading: askLoading }] = useLazyQuery(ASK_MESSAGE, {
