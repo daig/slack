@@ -3,6 +3,7 @@ import { gql, useMutation, useLazyQuery, useQuery } from '@apollo/client';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { MentionsInput, Mention, SuggestionDataItem } from 'react-mentions';
+import { FileUploadModal } from './FileUploadModal';
 
 const CREATE_MESSAGE = gql`
   mutation CreateMessageWithChannel($content: String!, $userId: UUID!, $channelId: UUID!) {
@@ -157,6 +158,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     const [messageContent, setMessageContent] = useState('');
     const [showPopup, setShowPopup] = useState(false);
     const [popupContent, setPopupContent] = useState('');
+    const [isFileUploadModalOpen, setIsFileUploadModalOpen] = useState(false);
 
     const { data: channelData } = useQuery(GET_CHANNEL_MEMBERS, {
         variables: { channelId },
@@ -339,6 +341,20 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                 </div>
                 <div className="flex gap-2">
                     <button
+                        type="button"
+                        onClick={() => setIsFileUploadModalOpen(true)}
+                        disabled={!channelId}
+                        className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600 ${
+                            !channelId
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-600 text-white hover:bg-gray-500 active:bg-gray-700'
+                        }`}
+                    >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                    </button>
+                    <button
                         type="submit"
                         disabled={!channelId}
                         className={`inline-flex items-center rounded-lg px-4 py-3 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
@@ -381,6 +397,11 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                     </button>
                 </div>
             </form>
+
+            <FileUploadModal
+                isOpen={isFileUploadModalOpen}
+                onClose={() => setIsFileUploadModalOpen(false)}
+            />
 
             {showPopup && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
