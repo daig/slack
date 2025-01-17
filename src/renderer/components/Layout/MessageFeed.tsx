@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery, gql } from '@apollo/client';
+import { useNavigate } from 'react-router-dom';
 
 const GET_MESSAGES = gql`
   query GetMessages($channelId: UUID!) {
@@ -78,6 +79,7 @@ const renderMessageWithMentions = (content: string, onChannelSelect: (channelId:
 
 const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect: (channelId: string) => void }> = ({ channelId, userId, onChannelSelect }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   
   if (!channelId) {
     return <div className="flex-1 min-h-0 bg-gray-50"></div>;
@@ -137,7 +139,8 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
                       <img
                         src={messageChannel.messageByMessageId.userByUserId.avatarUrl}
                         alt={`${messageChannel.messageByMessageId.userByUserId.displayName}'s avatar`}
-                        className="w-8 h-8 rounded-full object-cover ring-2 ring-white"
+                        className="w-8 h-8 rounded-full object-cover ring-2 ring-white cursor-pointer"
+                        onClick={() => navigate(`/profile/${messageChannel.messageByMessageId.userByUserId.id}`)}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
@@ -146,17 +149,21 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
                       />
                     ) : null}
                     <div 
-                      className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium"
+                      className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white font-medium cursor-pointer"
                       style={{ display: messageChannel.messageByMessageId?.userByUserId?.avatarUrl ? 'none' : 'flex' }}
+                      onClick={() => navigate(`/profile/${messageChannel.messageByMessageId.userByUserId.id}`)}
                     >
                       {messageChannel.messageByMessageId?.userByUserId?.displayName?.[0]?.toUpperCase()}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <span className="font-medium text-gray-900">
+                      <button
+                        onClick={() => navigate(`/profile/${messageChannel.messageByMessageId.userByUserId.id}`)}
+                        className="font-medium text-gray-900 hover:underline"
+                      >
                         {messageChannel.messageByMessageId?.userByUserId?.displayName}
-                      </span>
+                      </button>
                       <span className="text-xs text-gray-500">
                         {new Date(messageChannel.postedAt).toLocaleString()}
                       </span>

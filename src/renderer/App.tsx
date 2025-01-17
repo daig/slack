@@ -7,6 +7,7 @@ import { client } from './apollo/client';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SignupPage from './components/Auth/SignupPage';
 import LoginPage from './components/Auth/LoginPage';
+import UserProfile from './components/Profile/UserProfile';
 import { UserProvider, useUser } from './context/UserContext';
 
 const MainLayout: React.FC = () => {
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
                         <Route path="/" element={<LoginPage />} />
                         <Route path="/signup" element={<SignupPage />} />
                         <Route path="/chat" element={<MainLayout />} />
+                        <Route path="/profile/:userId" element={<UserProfile />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </Router>
