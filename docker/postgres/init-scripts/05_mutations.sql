@@ -452,7 +452,7 @@ try:
         'contentType': doc_metadata.get('contentType', ''),
         'uploadedBy': doc_metadata.get('uploadedBy', ''),
         'uploadedAt': doc_metadata.get('uploadedAt', ''),
-        'fileSize': len(content) if content else 0
+        'fileSize': doc_metadata.get('fileSize', len(content) if content else 0)
     }
 
     # Add document to vector store
