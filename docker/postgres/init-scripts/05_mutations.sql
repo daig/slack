@@ -457,7 +457,7 @@ try:
     }
 
     # Debugging: Ensure 'text' is not in metadata
-    plpy.notice(f"Essential metadata being sent to Pinecone: {essential_metadata}")
+    plpy.notice(f" XXXXXXXXXXX Essential metadata being sent to Pinecone: {essential_metadata}")
 
     # Add document to vector store
     vectorstore.add_texts(
