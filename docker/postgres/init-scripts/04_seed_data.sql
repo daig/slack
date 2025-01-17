@@ -32,18 +32,18 @@ ON CONFLICT (name) DO NOTHING;
 
 
 insert into messages (content, user_id, updated_at)
-select Message, users.id, TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS PM')
+select Message, users.id, TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS')
 from chats
 join users on users.display_name = chats.Username;
 
 insert into message_channels (message_id, channel_id, posted_at)
-select messages.id, channels.id, TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS PM')
+select messages.id, channels.id, TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS')
 from chats
 join users on users.display_name = chats.Username
 join channels on channels.name = TRIM('#' FROM chats.Channel)
 join messages on messages.content = chats.Message 
     AND messages.user_id = users.id 
-    AND messages.updated_at = TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS PM');
+    AND messages.updated_at = TO_TIMESTAMP(chats.Timestamp, 'YYYY-MM-DD HH:MI:SS');
 
 -- Clean up temporary table
 DROP TABLE chats;
