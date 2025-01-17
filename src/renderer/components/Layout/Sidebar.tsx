@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, gql, useMutation } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
-import { ArrowLeftOnRectangleIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftOnRectangleIcon, PlusIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { JoinChannelModal } from './JoinChannelModal';
 
 const GET_USER_CHANNELS = gql`
@@ -138,7 +138,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onChannelSelect, selectedChann
                 </ul>
             </div>
 
-            <div className="p-4 border-t border-gray-700">
+            <div className="p-4 border-t border-gray-700 space-y-2">
+                <button
+                    onClick={() => navigate(`/profile/${userId}`)}
+                    className="w-full flex items-center justify-center gap-2 rounded-md bg-gray-700 py-2 px-4 text-gray-200 hover:bg-gray-600 hover:text-white transition-colors"
+                >
+                    <UserCircleIcon className="w-5 h-5" />
+                    <span>My Profile</span>
+                </button>
                 <button
                     onClick={handleLogout}
                     className="w-full flex items-center justify-center gap-2 rounded-md bg-gray-700 py-2 px-4 text-gray-200 hover:bg-gray-600 hover:text-white transition-colors"
