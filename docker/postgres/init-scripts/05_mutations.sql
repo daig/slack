@@ -416,7 +416,7 @@ try:
     pc = pinecone.Pinecone()
     index_name = "documents"
 
-    # Create index if it doesnt exist
+    # Create index if it doesn't exist
     try:
         pc.create_index(
             name=index_name,
@@ -437,7 +437,7 @@ try:
         embedding=embeddings
     )
 
-    # Parse metadata if its a string
+    # Parse metadata if it's a string
     doc_metadata = {}
     if isinstance(metadata, str):
         doc_metadata = json.loads(metadata)
@@ -453,12 +453,16 @@ try:
         'uploadedBy': doc_metadata.get('uploadedBy', ''),
         'uploadedAt': doc_metadata.get('uploadedAt', ''),
         'fileSize': doc_metadata.get('fileSize', len(content) if content else 0)
+        -- Note: 'text' field is intentionally omitted
     }
+
+    # Debugging: Ensure 'text' is not in metadata
+    plpy.notice(f"Essential metadata being sent to Pinecone: {essential_metadata}")
 
     # Add document to vector store
     vectorstore.add_texts(
         texts=[content],
-        metadatas=[essential_metadata]
+        metadatas=[essential_metadata]  -- Ensure only essential metadata is passed
     )
 
     plpy.notice(f"Successfully indexed document: {file_key}")
