@@ -475,16 +475,19 @@ COMMENT ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) IS
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION index_document(TEXT, TEXT, TEXT, JSONB) TO PUBLIC;
 
--- Create function for searching documents
-CREATE OR REPLACE FUNCTION search_documents(
-    query TEXT,
-    max_results INTEGER DEFAULT 3
-) RETURNS TABLE(
+-- Create a composite type for search results
+CREATE TYPE search_document_result AS (
     file_key TEXT,
     bucket TEXT,
     score FLOAT,
     metadata JSONB
-) AS $$
+);
+
+-- Create function for searching documents
+CREATE OR REPLACE FUNCTION search_documents(
+    query TEXT,
+    max_results INTEGER DEFAULT 3
+) RETURNS SETOF search_document_result AS $$
 # Allow importing external modules
 import sys
 sys.path.append('/usr/local/lib/python3.11/site-packages')
@@ -532,11 +535,15 @@ except Exception as e:
     plpy.error(f"Error searching documents: {str(e)}")
     return []
 
-$$ LANGUAGE plpython3u SECURITY DEFINER;
+$$ LANGUAGE plpython3u SECURITY DEFINER STABLE;
 
 -- Add comment for GraphQL documentation
 COMMENT ON FUNCTION search_documents(TEXT, INTEGER) IS 
-'Searches for documents in Pinecone using semantic similarity.';
+'@name searchDocuments
+Searches for documents in Pinecone using semantic similarity.';
+
+COMMENT ON TYPE search_document_result IS 
+'Result type for document search queries containing file information and relevance score.';
 
 -- Grant execute permission to allow Postgraphile access
 GRANT EXECUTE ON FUNCTION search_documents(TEXT, INTEGER) TO PUBLIC;
