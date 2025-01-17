@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { gql, useQuery, useMutation } from '@apollo/client';
 import { useUser } from '../../context/UserContext';
+import { cloudinaryConfig, getCloudinaryUploadUrl } from '../../config/cloudinary';
 
 const GET_USER_PROFILE = gql`
   query GetUserProfile($userId: UUID!) {
@@ -32,12 +33,32 @@ const UPDATE_USER_BIO = gql`
   }
 `;
 
+const UPDATE_AVATAR_URL = gql`
+  mutation UpdateAvatarUrl($userId: UUID!, $avatarUrl: String!) {
+    updateUserById(
+      input: {
+        id: $userId
+        userPatch: {
+          avatarUrl: $avatarUrl
+        }
+      }
+    ) {
+      user {
+        id
+        avatarUrl
+      }
+    }
+  }
+`;
+
 const UserProfile: React.FC = () => {
   const { userId: loggedInUserId } = useUser();
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [bioInput, setBioInput] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { loading, error, data } = useQuery(GET_USER_PROFILE, {
     variables: { userId },
@@ -46,6 +67,10 @@ const UserProfile: React.FC = () => {
 
   const [updateBio, { loading: updating }] = useMutation(UPDATE_USER_BIO, {
     onCompleted: () => setIsEditing(false),
+    refetchQueries: ['GetUserProfile']
+  });
+
+  const [updateAvatarUrl] = useMutation(UPDATE_AVATAR_URL, {
     refetchQueries: ['GetUserProfile']
   });
 
@@ -66,6 +91,69 @@ const UserProfile: React.FC = () => {
       });
     } catch (err) {
       console.error('Error updating bio:', err);
+    }
+  };
+
+  const handleImageClick = () => {
+    if (isOwnProfile && fileInputRef.current) {
+      console.log('Image clicked, opening file dialog');
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !userId) {
+      console.log('No file selected or no userId');
+      return;
+    }
+
+    if (!cloudinaryConfig.cloudName || !cloudinaryConfig.uploadPreset) {
+      console.error('Missing Cloudinary configuration');
+      return;
+    }
+
+    console.log('Starting image upload for file:', file.name);
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+      const uploadUrl = getCloudinaryUploadUrl(cloudinaryConfig.cloudName);
+      console.log('Uploading to:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Cloudinary response:', data);
+      
+      if (data.secure_url) {
+        console.log('Updating avatar URL in database...');
+        await updateAvatarUrl({
+          variables: {
+            userId,
+            avatarUrl: data.secure_url
+          }
+        });
+        console.log('Avatar URL updated successfully');
+      } else {
+        console.error('No secure_url in Cloudinary response:', data);
+      }
+    } catch (err) {
+      console.error('Error uploading image:', err);
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Reset the file input
+      }
     }
   };
 
@@ -120,24 +208,65 @@ const UserProfile: React.FC = () => {
           </button>
 
           <div className="flex items-start space-x-6">
-            <div className="flex-shrink-0">
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={`${user.displayName}'s avatar`}
-                  className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.nextElementSibling?.removeAttribute('style');
-                  }}
-                />
-              ) : (
-                <div 
-                  className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-medium shadow-lg"
-                >
-                  {user.displayName[0].toUpperCase()}
+            <div className="flex-shrink-0 relative group">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+                onClick={(e) => {
+                  // Reset the file input value before opening dialog
+                  (e.target as HTMLInputElement).value = '';
+                }}
+              />
+              {uploadingImage ? (
+                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
+              ) : (
+                <>
+                  {user.avatarUrl ? (
+                    <div 
+                      className={`relative ${isOwnProfile ? 'cursor-pointer' : ''}`}
+                      onClick={handleImageClick}
+                    >
+                      <img
+                        src={user.avatarUrl}
+                        alt={`${user.displayName}'s avatar`}
+                        className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.nextElementSibling?.removeAttribute('style');
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div 
+                      className={`w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-medium shadow-lg ${isOwnProfile ? 'cursor-pointer' : ''}`}
+                      onClick={handleImageClick}
+                    >
+                      {user.displayName[0].toUpperCase()}
+                    </div>
+                  )}
+                  {isOwnProfile && (
+                    <div 
+                      className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all cursor-pointer"
+                      onClick={handleImageClick}
+                    >
+                      <svg 
+                        className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
