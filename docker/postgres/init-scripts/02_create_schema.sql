@@ -32,26 +32,19 @@ CREATE UNIQUE INDEX idx_channels_name ON channels (name) WHERE name IS NOT NULL;
 CREATE FUNCTION get_dm_channel(user_id_1 UUID, user_id_2 UUID) RETURNS UUID AS $$
 DECLARE
     channel_id UUID := uuid_combine(user_id_1, user_id_2);
-    channel_name TEXT;
+    display_names TEXT;
 BEGIN
-    SELECT string_agg(display_name, '<>') INTO channel_name
-    FROM (
-        SELECT display_name 
-        FROM users 
-        WHERE id IN (user_id_1, user_id_2)
-        ORDER BY display_name
-    ) u;
 
-    INSERT INTO channels (id, description, is_private, is_dm) 
-    VALUES (channel_id, display_names, TRUE, TRUE)
+    INSERT INTO channels (id, name, is_dm) 
+    VALUES (channel_id, NULL, TRUE)
     ON CONFLICT (id) DO NOTHING;
-    
+
     INSERT INTO channel_members (channel_id, user_id) 
     VALUES (channel_id, user_id_1), (channel_id, user_id_2)
     ON CONFLICT DO NOTHING;
-    
-    RETURN channel_id;
-END;
+
+    return channel_id;
+END
 $$ LANGUAGE plpgsql;
 
 
