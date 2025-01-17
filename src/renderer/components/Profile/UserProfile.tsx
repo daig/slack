@@ -51,6 +51,14 @@ const UPDATE_AVATAR_URL = gql`
   }
 `;
 
+const GET_DM_CHANNEL = gql`
+  mutation GetDmChannel($userId1: UUID!, $userId2: UUID!) {
+    getDmChannel(input: { userId1: $userId1, userId2: $userId2 }) {
+      uuid
+    }
+  }
+`;
+
 const UserProfile: React.FC = () => {
   const { userId: loggedInUserId } = useUser();
   const { userId } = useParams<{ userId: string }>();
@@ -72,6 +80,16 @@ const UserProfile: React.FC = () => {
 
   const [updateAvatarUrl] = useMutation(UPDATE_AVATAR_URL, {
     refetchQueries: ['GetUserProfile']
+  });
+
+  const [getDmChannel, { loading: creatingDm }] = useMutation(GET_DM_CHANNEL, {
+    onCompleted: (data) => {
+      const channelId = data.getDmChannel.uuid;
+      navigate(`/channels/${channelId}`);
+    },
+    onError: (error) => {
+      console.error('Error creating DM channel:', error);
+    }
   });
 
   const handleEditClick = () => {
@@ -154,6 +172,21 @@ const UserProfile: React.FC = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = ''; // Reset the file input
       }
+    }
+  };
+
+  const handleStartDm = async () => {
+    if (!loggedInUserId || !userId) return;
+    
+    try {
+      await getDmChannel({
+        variables: {
+          userId1: loggedInUserId,
+          userId2: userId
+        }
+      });
+    } catch (err) {
+      console.error('Error starting DM:', err);
     }
   };
 
@@ -311,7 +344,7 @@ const UserProfile: React.FC = () => {
                       No bio provided
                     </p>
                   )}
-                  {isOwnProfile && (
+                  {isOwnProfile ? (
                     <button
                       onClick={handleEditClick}
                       className="mt-4 text-blue-600 hover:text-blue-800 flex items-center gap-1"
@@ -320,6 +353,26 @@ const UserProfile: React.FC = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       {user.bio ? 'Edit bio' : 'Add bio'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleStartDm}
+                      disabled={creatingDm}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {creatingDm ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Creating chat...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          Message
+                        </>
+                      )}
                     </button>
                   )}
                 </div>

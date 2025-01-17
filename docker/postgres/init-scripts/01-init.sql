@@ -12,13 +12,17 @@ RETURNS uuid AS $$
 BEGIN
     -- Convert UUIDs to their string representation and sort them
     -- Then concatenate and hash them to create a new deterministic UUID
-    RETURN encode(
-        digest(
-            LEAST(uuid1::text, uuid2::text) || 
-            GREATEST(uuid1::text, uuid2::text),
-            'sha256'
-        ),
-        'hex'
+    RETURN (
+        substring(
+            encode(
+                digest(
+                    LEAST(uuid1::text, uuid2::text) || 
+                    GREATEST(uuid1::text, uuid2::text),
+                    'sha256'
+                ),
+                'hex'
+            ) from 1 for 32
+        )
     )::uuid;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
