@@ -233,7 +233,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
 
     const [searchDocuments, { loading: searchLoading }] = useLazyQuery(SEARCH_DOCUMENTS, {
         onCompleted: (data) => {
-            setSearchResults(data.searchDocumentsList);
+            console.log('Search results:', data.searchDocumentsList); // Debug log
+            setSearchResults(data.searchDocumentsList || []);
             setShowSearchResults(true);
         },
         onError: (error) => {
@@ -580,39 +581,46 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                                 </svg>
                             </button>
                         </div>
-                        {searchResults.length > 0 ? (
+                        {searchResults && searchResults.length > 0 ? (
                             <div className="space-y-4">
                                 {searchResults.map((result, index) => {
-                                    // Parse the metadata JSON string
-                                    const metadata = JSON.parse(result.metadata);
-                                    return (
-                                        <div key={index} className="border rounded-lg p-4">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="font-medium">{metadata.fileName || 'Unnamed file'}</span>
-                                                <span className="text-sm text-gray-500">
-                                                    Score: {(result.score * 100).toFixed(0)}%
-                                                </span>
+                                    try {
+                                        const metadata = JSON.parse(result.metadata);
+                                        console.log('Parsed metadata:', metadata); // Debug log
+                                        return (
+                                            <div key={result.fileKey} className="border rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="font-medium">{metadata.fileName || result.fileKey}</span>
+                                                    <span className="text-sm text-gray-500">
+                                                        Score: {(result.score * 100).toFixed(0)}%
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm text-gray-600 space-y-2">
+                                                    <p>File Key: {result.fileKey}</p>
+                                                    <p>Bucket: {result.bucket}</p>
+                                                    <p>Content Type: {metadata.contentType || 'Unknown'}</p>
+                                                    <p>Uploaded at: {metadata.uploadedAt ? new Date(metadata.uploadedAt).toLocaleString() : 'Unknown'}</p>
+                                                    <a 
+                                                        href={metadata.downloadUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            const url = metadata.downloadUrl;
+                                                            console.log('Opening URL:', url); // Debug log
+                                                            window.open(url, '_blank', 'noopener,noreferrer');
+                                                        }}
+                                                    >
+                                                        Download File
+                                                    </a>
+                                                </div>
                                             </div>
-                                            <div className="text-sm text-gray-600 space-y-2">
-                                                <p>Uploaded by: {metadata.uploadedBy || 'Unknown'}</p>
-                                                <p>Uploaded at: {metadata.uploadedAt ? new Date(metadata.uploadedAt).toLocaleString() : 'Unknown'}</p>
-                                                <p>Size: {metadata.fileSize ? `${(metadata.fileSize / 1024).toFixed(2)} KB` : 'Unknown'}</p>
-                                                <p>Type: {metadata.contentType || 'Unknown'}</p>
-                                                <a 
-                                                    href={metadata.downloadUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        window.open(metadata.downloadUrl, '_blank');
-                                                    }}
-                                                >
-                                                    Download File
-                                                </a>
-                                            </div>
-                                        </div>
-                                    );
+                                        );
+                                    } catch (error) {
+                                        console.error('Error parsing metadata:', error, result);
+                                        return null;
+                                    }
                                 })}
                             </div>
                         ) : (
