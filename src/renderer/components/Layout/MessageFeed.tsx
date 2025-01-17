@@ -24,6 +24,49 @@ const GET_MESSAGES = gql`
   }
 `;
 
+const renderMessageWithMentions = (content: string) => {
+  if (!content) return '';
+  
+  // This regex matches both @ and # mentions in the format @[name](id) or #[name](id)
+  const mentionRegex = /[@#]\[(.*?)\]\((.*?)\)/g;
+  
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    // Add the text before the mention
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    // Add the mention as a link
+    const [fullMatch, display, id] = match;
+    parts.push(
+      <a
+        key={match.index}
+        href="#"
+        className="text-blue-600 hover:text-blue-800 hover:underline"
+        onClick={(e) => {
+          e.preventDefault();
+          // TODO: Handle click on mention
+        }}
+      >
+        {fullMatch.startsWith('@') ? '@' : '#'}{display}
+      </a>
+    );
+
+    lastIndex = match.index + fullMatch.length;
+  }
+
+  // Add any remaining text after the last mention
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return <>{parts}</>;
+};
+
 const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelId, userId }) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
   
@@ -113,7 +156,7 @@ const MessageList: React.FC<{ channelId: string, userId: string }> = ({ channelI
                       )}
                     </div>
                     <p className="mt-1 text-gray-700 whitespace-pre-wrap break-words">
-                      {messageChannel.messageByMessageId?.content}
+                      {renderMessageWithMentions(messageChannel.messageByMessageId?.content)}
                     </p>
                   </div>
                 </div>

@@ -1,7 +1,8 @@
-import React, { useState, KeyboardEvent } from 'react';
+import React, { useState, KeyboardEvent, ChangeEvent } from 'react';
 import { gql, useMutation, useLazyQuery } from '@apollo/client';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { MentionsInput, Mention, SuggestionDataItem } from 'react-mentions';
 
 const CREATE_MESSAGE = gql`
   mutation CreateMessageWithChannel($content: String!, $userId: UUID!, $channelId: UUID!) {
@@ -126,6 +127,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
     const [showPopup, setShowPopup] = useState(false);
     const [popupContent, setPopupContent] = useState('');
 
+    const users: SuggestionDataItem[] = [
+        { id: 'jarred', display: 'jarred' },
+        { id: 'david', display: 'david' },
+        { id: 'bobbert', display: 'bobbert' }
+    ];
+
+    const channels: SuggestionDataItem[] = [
+        { id: 'general', display: 'general' },
+        { id: 'random', display: 'random' }
+    ];
+
     const [askQuestion, { loading: askLoading }] = useLazyQuery(ASK_MESSAGE, {
         onCompleted: (data) => {
             setPopupContent(data.askMessage);
@@ -175,19 +187,105 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
         pointerEvents: channelId ? 'auto' : 'none' as React.CSSProperties['pointerEvents'],
     };
 
+    const mentionInputStyle = {
+        control: {
+            backgroundColor: '#fff',
+            fontSize: 16,
+            fontWeight: 'normal',
+            marginBottom: '0.5rem',
+        },
+        input: {
+            margin: 0,
+            padding: '12px 16px',
+            borderRadius: '0.5rem',
+            border: '1px solid #e5e7eb',
+            width: '100%',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            minHeight: '2.5rem',
+            maxHeight: '10rem',
+            overflow: 'hidden',
+        },
+        suggestions: {
+            list: {
+                backgroundColor: 'white',
+                border: '1px solid rgba(0,0,0,0.15)',
+                borderRadius: '0.5rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                marginTop: '0.5rem',
+                bottom: '100%',
+                marginBottom: '0.5rem',
+                width: '100%',
+                maxHeight: '200px',
+                overflow: 'auto',
+                zIndex: 1,
+            },
+            item: {
+                padding: '8px 16px',
+                borderBottom: '1px solid rgba(0,0,0,0.15)',
+                '&focused': {
+                    backgroundColor: '#f3f4f6',
+                },
+            },
+        },
+        highlighter: {
+            padding: '12px 16px',
+            border: '1px solid transparent',
+        }
+    };
+
     return (
         <div className="message-composer relative" style={composerStyles}>
-            <form onSubmit={handleSend}>
-                <textarea
-                    rows={1}
-                    value={messageContent}
-                    onChange={(e) => setMessageContent(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={channelId ? "Type a message..." : "Select a channel to start messaging"}
-                    disabled={!channelId}
-                    className="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 resize-none"
-                    style={{ minHeight: '2.5rem', maxHeight: '10rem' }}
-                />
+            <form onSubmit={handleSend} className="flex flex-col gap-2">
+                <div className="relative">
+                    <MentionsInput
+                        value={messageContent}
+                        onChange={(_: any, newValue: string) => setMessageContent(newValue)}
+                        style={mentionInputStyle}
+                        placeholder={channelId ? "Type a message... Use @ to mention someone or # for channels" : "Select a channel to start messaging"}
+                        disabled={!channelId}
+                        forceSuggestionsAboveCursor
+                    >
+                        <Mention
+                            trigger="@"
+                            data={users}
+                            renderSuggestion={(
+                                suggestion: SuggestionDataItem,
+                                search: string,
+                                highlightedDisplay: React.ReactNode
+                            ) => (
+                                <div className="user-suggestion">
+                                    {highlightedDisplay}
+                                </div>
+                            )}
+                            style={{
+                                backgroundColor: 'transparent',
+                                borderRadius: '3px',
+                                padding: '1px 3px',
+                                margin: '-1px 0',
+                            }}
+                        />
+                        <Mention
+                            trigger="#"
+                            data={channels}
+                            markup="#[__display__](__id__)"
+                            renderSuggestion={(
+                                suggestion: SuggestionDataItem,
+                                search: string,
+                                highlightedDisplay: React.ReactNode
+                            ) => (
+                                <div className="channel-suggestion">
+                                    {highlightedDisplay}
+                                </div>
+                            )}
+                            style={{
+                                backgroundColor: 'transparent',
+                                borderRadius: '3px',
+                                padding: '1px 3px',
+                                margin: '-1px 0',
+                            }}
+                        />
+                    </MentionsInput>
+                </div>
                 <div className="flex gap-2">
                     <button
                         type="submit"
