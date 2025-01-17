@@ -17,11 +17,13 @@ CREATE INDEX idx_user_logins_email ON user_logins(email);
 
 CREATE TABLE channels ( -- Channels table: Stores chat channels/rooms
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(50),
     description TEXT,
     is_private BOOLEAN DEFAULT FALSE,
-    CONSTRAINT channel_name_valid CHECK (name ~ '^[a-z0-9_\-]+$') -- Ensures channel name only contains letters, numbers, hyphens, and underscores
+    CONSTRAINT channel_name_valid CHECK (name IS NULL OR name ~ '^[a-z0-9_\-]+$')
 );
+
+CREATE UNIQUE INDEX idx_channels_name ON channels (name) WHERE name IS NOT NULL;
 
 CREATE FUNCTION get_dm_channel(user_id_1 UUID, user_id_2 UUID) RETURNS UUID AS $$
 DECLARE
