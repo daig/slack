@@ -206,9 +206,59 @@ interface FileAttachment {
 interface MessageComposerProps {
     channelId: string;
     userId: string;
+    onScrollToUserMessage?: (userId: string) => void;
+    onChannelSelect: (channelId: string) => void;
 }
 
-export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, userId }) => {
+const renderMessageWithMentions = (content: string, onChannelSelect: (channelId: string) => void, onScrollToUserMessage?: (userId: string) => void) => {
+  if (!content) return '';
+  
+  // This regex matches both @ and # mentions in the format @[name](id) or #[name](id)
+  const mentionRegex = /[@#]\[(.*?)\]\((.*?)\)/g;
+  
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    // Add the text before the mention
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+
+    // Add the mention as a link
+    const [fullMatch, display, id] = match;
+    const isChannel = fullMatch.startsWith('#');
+    parts.push(
+      <a
+        key={match.index}
+        href="#"
+        className="text-blue-600 hover:text-blue-800 hover:underline"
+        onClick={(e) => {
+          e.preventDefault();
+          if (isChannel) {
+            onChannelSelect(id);
+          } else if (onScrollToUserMessage) {
+            onScrollToUserMessage(id);
+          }
+        }}
+      >
+        {fullMatch.startsWith('@') ? '@' : '#'}{display}
+      </a>
+    );
+
+    lastIndex = match.index + fullMatch.length;
+  }
+
+  // Add any remaining text after the last mention
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return <>{parts}</>;
+};
+
+export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, userId, onScrollToUserMessage, onChannelSelect }) => {
     const { sendMessage, loading, error } = useCreateMessage();
     const { speak, isLoading: speechLoading, error: speechError } = useTextToSpeech();
     const [messageContent, setMessageContent] = useState('');
@@ -562,7 +612,9 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ channelId, use
                                 </svg>
                             </button>
                         </div>
-                        <p className="text-gray-700 whitespace-pre-wrap">{popupContent}</p>
+                        <p className="text-gray-700 whitespace-pre-wrap">
+                            {renderMessageWithMentions(popupContent, onChannelSelect, onScrollToUserMessage)}
+                        </p>
                     </div>
                 </div>
             )}

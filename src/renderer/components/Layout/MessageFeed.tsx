@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, ForwardRefRenderFunction, forwardRef } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
 
@@ -50,7 +50,7 @@ interface MessageFeedProps {
     onChannelSelect: (channelId: string) => void;
 }
 
-const renderMessageWithMentions = (content: string, onChannelSelect: (channelId: string) => void) => {
+const renderMessageWithMentions = (content: string, onChannelSelect: (channelId: string) => void, onScrollToUserMessage?: (userId: string) => void) => {
   if (!content) return '';
   
   // This regex matches both @ and # mentions in the format @[name](id) or #[name](id)
@@ -78,6 +78,8 @@ const renderMessageWithMentions = (content: string, onChannelSelect: (channelId:
           e.preventDefault();
           if (isChannel) {
             onChannelSelect(id);
+          } else if (onScrollToUserMessage) {
+            onScrollToUserMessage(id);
           }
         }}
       >
@@ -128,8 +130,23 @@ const renderFileAttachment = (attachment: any) => {
   );
 };
 
-const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect: (channelId: string) => void }> = ({ channelId, userId, onChannelSelect }) => {
+interface MessageListProps {
+  channelId: string;
+  userId: string;
+  onChannelSelect: (channelId: string) => void;
+  onScrollToUserMessage?: (userId: string) => void;
+}
+
+interface MessageListRef {
+  scrollToUserMessage: (userId: string) => boolean;
+}
+
+const MessageList: ForwardRefRenderFunction<MessageListRef, MessageListProps> = (
+  { channelId, userId, onChannelSelect, onScrollToUserMessage }, 
+  ref
+) => {
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement }>({});
   const navigate = useNavigate();
   
   if (!channelId) {
@@ -149,6 +166,32 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
   React.useEffect(() => {
     scrollToBottom();
   }, [data?.channelById?.messageChannelsByChannelId?.nodes]);
+
+  const scrollToUserMessage = (userId: string) => {
+    const userMessages = data?.channelById?.messageChannelsByChannelId?.nodes
+      ?.filter((msg: any) => msg.messageByMessageId?.userByUserId?.id === userId);
+    
+    if (userMessages && userMessages.length > 0) {
+      // Get the most recent message
+      const mostRecentMessage = userMessages[userMessages.length - 1];
+      const messageElement = messageRefs.current[`${mostRecentMessage.messageByMessageId.id}`];
+      
+      if (messageElement) {
+        messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a brief highlight animation
+        messageElement.classList.add('bg-blue-50');
+        setTimeout(() => {
+          messageElement.classList.remove('bg-blue-50');
+        }, 2000);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  React.useImperativeHandle(ref, () => ({
+    scrollToUserMessage
+  }));
 
   if (loading) return (
     <div className="flex items-center justify-center h-full">
@@ -198,7 +241,15 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
         {data?.channelById?.messageChannelsByChannelId?.nodes?.length > 0 ? (
           <>
             {data.channelById.messageChannelsByChannelId.nodes.map((messageChannel: any) => (
-              <div key={messageChannel.postedAt} className="group animate-fadeIn">
+              <div 
+                key={messageChannel.postedAt} 
+                className="group animate-fadeIn transition-colors duration-500"
+                ref={el => {
+                  if (el) {
+                    messageRefs.current[messageChannel.messageByMessageId.id] = el;
+                  }
+                }}
+              >
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
                     {messageChannel.messageByMessageId?.userByUserId?.avatarUrl ? (
@@ -238,7 +289,11 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
                       )}
                     </div>
                     <p className="mt-1 text-gray-700 whitespace-pre-wrap break-words">
-                      {renderMessageWithMentions(messageChannel.messageByMessageId?.content, onChannelSelect)}
+                      {renderMessageWithMentions(
+                        messageChannel.messageByMessageId?.content, 
+                        onChannelSelect,
+                        onScrollToUserMessage
+                      )}
                     </p>
                     {messageChannel.messageByMessageId?.messageAttachmentsByMessageId?.nodes?.map((attachment: any) => 
                       renderFileAttachment(attachment)
@@ -262,16 +317,33 @@ const MessageList: React.FC<{ channelId: string, userId: string, onChannelSelect
   );
 };
 
-export const MessageFeed: React.FC<MessageFeedProps> = ({ channelId, userId, onChannelSelect }) => {
+const MessageListWithRef = forwardRef<MessageListRef, MessageListProps>(MessageList);
+
+export const MessageFeed = forwardRef<MessageListRef, MessageFeedProps>((props, ref) => {
+  const { channelId, userId, onChannelSelect } = props;
+
   if (!channelId) {
     return <div className="flex-1 min-h-0 bg-gray-50"></div>;
   }
 
+  const handleScrollToUserMessage = (userId: string) => {
+    if (ref && 'current' in ref) {
+      return ref.current?.scrollToUserMessage(userId);
+    }
+    return false;
+  };
+
   return (
     <div className="flex-1 min-h-0 bg-gray-50">
-      <MessageList channelId={channelId} userId={userId} onChannelSelect={onChannelSelect} />
+      <MessageListWithRef 
+        ref={ref} 
+        channelId={channelId} 
+        userId={userId} 
+        onChannelSelect={onChannelSelect}
+        onScrollToUserMessage={handleScrollToUserMessage}
+      />
     </div>
   );
-};
+});
 
 export default MessageFeed;
